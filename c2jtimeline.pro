@@ -1,8 +1,7 @@
 pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
 
-  ; This procedure performs a linear fitting of the cnt2Jy values, considering the
-  ; lists produced by reducecals.pro, named 'stack_lin_final.txt' and 'stack_cub_final.txt'
-  ; and grouping data according to a time range defined by the user (expressed in hours).
+  ; This procedure performs an averaging or a linear fitting of the cnt2Jy values, considering the
+  ; lists produced by runcalib.pro and grouping data according to a time range defined by the user (expressed in hours).
   ; By default, this gap is set to 24 hours.
   ;
   ; Users must specify if they want to extract linearly fitted cnt2Jy values (linfit value inside each gap),
@@ -15,7 +14,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
   ; orders of magnitude of 10E+06, 10E+07, producing properly formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Mar 3, 2017
+  ; Last edited: Oct 25, 2017
   ;
 
   sep=path_sep()
@@ -100,7 +99,8 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
     device, file=workpath+outplot[f], /COLOR, /landscape
     !p.multi=[1,1,0]
     ; overall plot of full dataset
-    plot, elapsed, cnt2Jy_0_el, yrange=[0,max(cnt2Jy_0_el)+1], xstyle=1, psym=2, ytitle="cnt2Jy", xtitle="Elapsed time [hh.h] since "+day
+    plot, elapsed, cnt2Jy_0_el, ys=1, xstyle=1, psym=2, ytitle="cnt2Jy", xtitle="Elapsed time [hh.h] since "+day
+   ; plot, elapsed, cnt2Jy_0_el, yrange=[0,max(cnt2Jy_0_el)+1], xstyle=1, psym=2, ytitle="cnt2Jy", xtitle="Elapsed time [hh.h] since "+day
     oplot, elapsed, cnt2Jy_1_el, psym=6
     ; preparing multi-plot page for details
     !p.multi=[0,2,2]
@@ -214,13 +214,14 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
           ;          print, ' '
           ;          stop
 
-          ystep=(max(c2J0plot)-min(c2J0plot))/10.0
+          ystep=(max(c2J0plot+errc2j0plot)-min(c2J0plot-errc2j0plot))/10.0
           labstep=ystep
           if ystep eq 0 then begin
             ystep=0.1
             labstep=ystep/numcals
           endif
-          plot, el0plot, c2J0plot, /NODATA, xrange=[0,90], yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elevation (deg)"
+          ploterror, el0plot, c2J0plot, el_0val*0, errc2j0plot, /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_0", xtitle="Elevation (deg)", charsize=1.0
+         ;plot, el0plot, c2J0plot, /NODATA, xrange=[0,90], yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elevation (deg)"
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid0] eq nameu[i], namenum)
             if namenum ge 1 then begin
@@ -234,7 +235,10 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
           ; oplot, e, y_0-sigma_0d, linestyle=1
 
 
-          plot, th0plot, c2J0plot, /NODATA, xs=1, yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+          xstep=(max(th0plot)-min(th0plot))/10.0
+          ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xrange=[min(th0plot)-xstep,max(th0plot)+xstep], ys=1, ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
+          ; ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xs=1, yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+          ;
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid0] eq nameu[i], namenum)
             if namenum ge 1 then begin
@@ -295,13 +299,14 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
           y_1min=Ch_1[0]+(Ch_1[1])*th_1val+Ch_sig1[0]
           y_1max=Ch_1[0]+(Ch_1[1])*th_1val-Ch_sig1[0]
 
-          ystep=(max(c2J1plot)-min(c2J1plot))/10.0
+          ystep=(max(c2J1plot+errc2J1plot)-min(c2J1plot-errc2J1plot))/10.0
           labstep=ystep
           if ystep eq 0 then begin
             ystep=0.1
             labstep=ystep/numcals
           endif
-          plot, el1plot, c2J1plot, /NODATA, xrange=[0,90], yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elevation (deg)"
+          ploterror, el1plot, c2J1plot, el1plot*0, errc2J1plot, /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_1", xtitle="Elevation (deg)", charsize=1.0
+       ;   plot, el1plot, c2J1plot, /NODATA, xrange=[0,90], yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elevation (deg)"
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid1] eq nameu[i], namenum)
             if namenum ge 1 then begin
@@ -311,8 +316,9 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
             endif
           endfor
 
-
-          plot, th1plot, c2J1plot, /NODATA, xs=1, yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+          xstep=(max(th1plot)-min(th1plot))/10.0
+          ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xrange=[min(th1plot)-xstep,max(th1plot)+xstep], ys=1, ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
+         ; ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xs=1, yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid1] eq nameu[i], namenum)
             if namenum ge 1 then begin
