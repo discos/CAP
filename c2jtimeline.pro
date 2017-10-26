@@ -1,20 +1,31 @@
-pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
+pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
 
   ; This procedure performs an averaging or a linear fitting of the cnt2Jy values, considering the
   ; lists produced by runcalib.pro and grouping data according to a time range defined by the user (expressed in hours).
   ; By default, this gap is set to 24 hours.
   ;
   ; Users must specify if they want to extract linearly fitted cnt2Jy values (linfit value inside each gap),
-  ; by setting the /linf
+  ; by setting the /linf option:
+  ; 
+  ; IDL> c2jtimeline, /linf
+  ; 
+  ; By default, runcalib's output files are searched for inside the working folder. 
+  ; Users might graphically select a different folder by using the /pickpath option:
+  ; 
+  ; IDL> c2jtimeline, /pickpath
   ;
-  ; See comments to identify where the program still needs to be edited.
+  ; c2jtimeline'2 detailed results are plotted into .ps files, one devoted to the EXLIN results, one to the EXCUB results.
+  ; On screen, by default only the whole dataset/timeline is shown. To also display on screen the detailed plots,
+  ; each showing the cnt2Jy trends inside a single time interval, use:
+  ;
+  ; IDL> c2jtimeline, /detplot
   ;
   ; Notice: the program automatically handles the measurements achieved on TP-like files resulting from the
   ; conversion of SARDARA acquisitions, which have raw counts levels in the
-  ; orders of magnitude of 10E+06, 10E+07, producing properly formatted output tables.
+  ; orders of magnitude of 10E+06, 10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Oct 25, 2017
+  ; Last edited: Oct 26, 2017
   ;
 
   sep=path_sep()
@@ -47,6 +58,10 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
   outplot[0]='cnt2Jy_lin.ps'
   outplot[1]='cnt2Jy_cub.ps'
 
+  sym=['circle','square','triangle','star','diamond','asterisk','X','plus','circle','square','triangle','star','diamond','asterisk','X','plus']
+  colors=['blue','red','green','dark orange','plum','gold','saddle brown','hot pink','green yellow','medium orchid','midnight blue','firebrick','medium sea green','dark slate gray','teal','dark magenta']
+
+
   for f=0, 1 do begin
 
     checkinput=file_search(workpath+infiles[f],count=fin,/test_read)
@@ -72,9 +87,9 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
 
     num=n_elements(name)
     intnum=ceil(timespan/range) ; number of time intervals with "gap" length
-    
+
     if timespan eq 0.0 then intnum=1   ; to handle cases where only one calibration measurement is available
-    
+
 
     ; finding the number of unique calibrator names
     nameu = name[UNIQ(name, SORT(name))]
@@ -85,9 +100,9 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
     printf, Unit, FORMAT = '(a,a)','Selected interpolation mode = ',mode
     printf, Unit, FORMAT = '(a,a,a)','Time range = ',strcompress(string(range,format='(D6.3)'),/remove_all),' hours'
     printf, Unit, FORMAT = '(a,a)', 'Number of calibration solution intervals = ',strcompress(string(intnum,format='(I3)'),/remove_all)
-    
+
     if counts_0[0] le 3000 then begin
-     ; printf, Unit, FORMAT = '(a2,a9,2(a11),9(a11))',"n","Freq","t_i","t_f","m_0","q_0","e_m_0","e_q_0","m_1","q_1","e_m_1","e_q_1"
+      ; printf, Unit, FORMAT = '(a2,a9,2(a11),9(a11))',"n","Freq","t_i","t_f","m_0","q_0","e_m_0","e_q_0","m_1","q_1","e_m_1","e_q_1"
       printf, Unit, '   n     Freq        t_i        t_f          m_0          q_0        e_m_0        e_q_0          m_1          q_1        e_m_1        e_q_1'
     endif else begin
       printf, Unit, ' n     Freq        t_i        t_f          m_0          q_0        e_m_0        e_q_0          m_1          q_1        e_m_1        e_q_1'
@@ -97,11 +112,38 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
     set_plot,'ps'
     device, /COLOR, bits=8
     device, file=workpath+outplot[f], /COLOR, /landscape
-    !p.multi=[1,1,0]
+
+
+    if f eq 0 then origin='EXLIN' else origin='EXCUB'
+
+    wholeplot=errorplot(el_d, cnt2Jy_0_el, el_d*0, err_cnt2Jy_0_el, name='CH0')
+    wholeplot.title='All cnt2Jy measurements - '+origin
+    wholeplot.xtitle='Elevation (deg)'
+    wholeplot.ytitle='Jy/cnt'
+    wholeplot.linestyle=' '
+    wholeplot.color='midnight blue'
+    wholeplot.symbol='square'
+    wholeplot.sym_filled=1
+    wholeplot.sym_size=1.0
+    wholeplot.xrange=[0,90]
+    wholeplot2=errorplot(el_d, cnt2Jy_1_el, el_d*0, err_cnt2Jy_1_el,/overplot, name='CH1')
+    wholeplot2.linestyle=' '
+    wholeplot2.color='deep sky blue'
+    wholeplot2.symbol='triangle'
+    wholeplot2.sym_filled=1
+    wholeplot2.sym_size=1.0
+
+    leg = legend(TARGET=[wholeplot, wholeplot2], POSITION=[0.9,0.9], /AUTO_TEXT_COLOR)
+
+
     ; overall plot of full dataset
+
+    !p.multi=[1,1,0]
     plot, elapsed, cnt2Jy_0_el, ys=1, xstyle=1, psym=2, ytitle="cnt2Jy", xtitle="Elapsed time [hh.h] since "+day
-   ; plot, elapsed, cnt2Jy_0_el, yrange=[0,max(cnt2Jy_0_el)+1], xstyle=1, psym=2, ytitle="cnt2Jy", xtitle="Elapsed time [hh.h] since "+day
+    ; plot, elapsed, cnt2Jy_0_el, yrange=[0,max(cnt2Jy_0_el)+1], xstyle=1, psym=2, ytitle="cnt2Jy", xtitle="Elapsed time [hh.h] since "+day
     oplot, elapsed, cnt2Jy_1_el, psym=6
+
+
     ; preparing multi-plot page for details
     !p.multi=[0,2,2]
 
@@ -221,7 +263,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
             labstep=ystep/numcals
           endif
           ploterror, el0plot, c2J0plot, el_0val*0, errc2j0plot, /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_0", xtitle="Elevation (deg)", charsize=1.0
-         ;plot, el0plot, c2J0plot, /NODATA, xrange=[0,90], yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elevation (deg)"
+          ;plot, el0plot, c2J0plot, /NODATA, xrange=[0,90], yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elevation (deg)"
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid0] eq nameu[i], namenum)
             if namenum ge 1 then begin
@@ -230,12 +272,18 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
               xyouts, 0, max(c2J0plot)-i*labstep, nameu[i], color=i, charsize=0.8, charthick=2
             endif
           endfor
-          ; oplot, e, y_0, linestyle=0
-          ; oplot, e, y_0+sigma_0d, linestyle=1
-          ; oplot, e, y_0-sigma_0d, linestyle=1
 
 
           xstep=(max(th0plot)-min(th0plot))/10.0
+
+          if keyword_set(detplot) then begin
+            displot=errorplot(th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, layout=[1,2,1])
+            displot.title=origin+' cnt2Jy_0 vs Time, INT'+strcompress(string(j),/remove_all)
+            displot.xtitle='Elapsed time (hh.h)'
+            displot.ytitle='Jy/cnt'
+            displot.xrange=[min(th0plot)-xstep,max(th0plot)+xstep]
+          endif
+
           ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xrange=[min(th0plot)-xstep,max(th0plot)+xstep], ys=1, ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
           ; ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xs=1, yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
           ;
@@ -244,8 +292,32 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
             if namenum ge 1 then begin
               oplot, th0plot[thiscal], c2J0plot[thiscal], color=i, psym=2
               oploterror, th0plot[thiscal], c2J0plot[thiscal], th0plot[thiscal]*0, errc2j0plot[thiscal], color=i, psym=2
+
+              if keyword_set(detplot) then begin
+                ; object graphics
+                displot2=errorplot(th0plot[thiscal], c2J0plot[thiscal], th0plot[thiscal]*0, errc2j0plot[thiscal], NAME=nameu[i], /overplot)
+                displot2.symbol=sym[i]
+                displot2.linestyle=' '
+                displot2.color=colors[i]
+                displot2.sym_size=1.5
+                displot2.ERRORBAR_COLOR=colors[i]
+                displot2.ERRORBAR_CAPSIZE=0.2
+                displot2.sym_filled=1
+                displot3=plot(th_0val, y_0,/overplot)
+                displot3.color='dark slate gray'
+                displot3.linestyle='solid'
+                displot4=plot(th_0val, y_0min,/overplot)
+                displot4.color='dark slate gray'
+                displot4.linestyle='dashed'
+                displot5=plot(th_0val, y_0max,/overplot)
+                displot5.color='dark slate gray'
+                displot5.linestyle='dashed'
+                lab=text(max(th0plot)-xstep,max(c2J0plot+errc2j0plot)-(i+1)*ystep, nameu[i], color=colors[i],/data, font_size=10)
+              endif
+
             endif
           endfor
+
 
           oplot, th_0val, y_0, linestyle=0
           oplot, th_0val, y_0min, linestyle=1
@@ -306,7 +378,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
             labstep=ystep/numcals
           endif
           ploterror, el1plot, c2J1plot, el1plot*0, errc2J1plot, /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_1", xtitle="Elevation (deg)", charsize=1.0
-       ;   plot, el1plot, c2J1plot, /NODATA, xrange=[0,90], yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elevation (deg)"
+          ;   plot, el1plot, c2J1plot, /NODATA, xrange=[0,90], yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elevation (deg)"
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid1] eq nameu[i], namenum)
             if namenum ge 1 then begin
@@ -316,15 +388,48 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf
             endif
           endfor
 
+
           xstep=(max(th1plot)-min(th1plot))/10.0
+
+          if keyword_set(detplot) then begin
+            displot6=errorplot(th1plot, c2J1plot, th1plot*0, errc2j1plot, /NODATA, layout=[1,2,2], /current)
+            displot6.title=origin+' cnt2Jy_1 vs Time, INT'+strcompress(string(j),/remove_all)
+            displot6.xtitle='Elapsed time (hh.h)'
+            displot6.ytitle='Jy/cnt'
+            displot6.xrange=[min(th1plot)-xstep,max(th1plot)+xstep]
+          endif
+
           ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xrange=[min(th1plot)-xstep,max(th1plot)+xstep], ys=1, ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
-         ; ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xs=1, yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+          ; ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xs=1, yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid1] eq nameu[i], namenum)
             if namenum ge 1 then begin
               oplot, th1plot[thiscal], c2J1plot[thiscal], color=i,  psym=6
               oploterror, th1plot[thiscal], c2J1plot[thiscal], th1plot[thiscal]*0, errc2J1plot[thiscal], color=i, psym=6
+
+              if keyword_set(detplot) then begin
+                ; object graphics
+                displot7=errorplot(th1plot[thiscal], c2J1plot[thiscal], th1plot[thiscal]*0, errc2j1plot[thiscal], NAME=nameu[i], /overplot)
+                displot7.symbol=sym[i]
+                displot7.linestyle=' '
+                displot7.color=colors[i]
+                displot7.sym_size=1.5
+                displot7.ERRORBAR_COLOR=colors[i]
+                displot7.ERRORBAR_CAPSIZE=0.2
+                displot7.sym_filled=1
+                displot8=plot(th_1val, y_1,/overplot)
+                displot8.color='dark slate gray'
+                displot8.linestyle='solid'
+                displot9=plot(th_1val, y_1min,/overplot)
+                displot9.color='dark slate gray'
+                displot9.linestyle='dashed'
+                displot10=plot(th_1val, y_1max,/overplot)
+                displot10.color='dark slate gray'
+                displot10.linestyle='dashed'
+              endif
+
             endif
+
           endfor
           oplot, th_1val, y_1, linestyle=0
           oplot, th_1val, y_1min, linestyle=1

@@ -1,35 +1,36 @@
-; Programma per l'ispezione visuale ed il flagging dei file FITS (ESCS 0.2-0.3)
-; Creato il 6 febbraio 2013 da A.Mattana e S.Righini
-; Debug:
-;      7 feb - corretta mancanza variabile "app" in start, caso di creazione checkfile
-;     12 feb - corretto problema con Logical Units, aggiungendo free_lun
-;     21 feb - tentativo di introdurre tasti "BACK" e "SKIP", modificando il metodo
-;              con cui viene costruita la lista dei file ancora da flaggare
-;     28 feb - corretto errore nel caso di "skip" su ultimo subscan
-; Modifiche:
-;     27/04/16 - la folder da selezionare all'inizio è ora quella "parent" che contiene
-;                tutte le subfolders coi dati da flaggare. Nell'interfaccia PLOT è ora
-;                possibile saltare alla folder precedente o successiva. Aggiunte varie
-;                labels e migliorata l'impaginazione. 
+; Program to visual inspect and flag continuum FITS acquisitions (ESCS 0.2-0.3)
+; Created on Feb. 6th 2013 by A.Mattana and S.Righini
+; Debug history:
+;      7 feb 2013 - added "app" variable in "start", to create/append checkfile
+;     12 feb 2013 - fixed problem on Logical Units, by adding free_lun
+;     28 feb 2013 - insertion of "BACK" and "SKIP" buttons
+; New releases:
+;     27 apr 2016 - the working folder is now the "parent"one, containing all the subfolders 
+;                   where the FITS files are stored. Users can now flag data easily passing 
+;                   from one subfolder to the following/precedent one
 
-; Come usare il tool:
-; 1) Lanciare con il nome flagging_widget_develop;
-; 2) selezionare l'utente dal menu a tendina in alto;
-; 3) cliccare sul pulsante BROWSE per selezionare la folder che contiene i FITS;
-; 4) cliccare sul pulsante GO!;
-; 5) se esiste già un checkfile per quella folder, comparirà una finestra
-;    nella quale scegliere "SI" se si vuole continuare il flagging (sui file non ancora
-;    flaggati) oppure "NO" per ripartire da capo, nel qual caso il precedente
-;    checkfile verrà perso!
-;    Se, comunque, si è risposto "SI" ma il checkfile pre-esistente era completo
-;    (cioè tutti i FITS erano stati flaggati) il programma chiede un'altra folder;
-; 6) nella nuova finestra di PLOT compariranno uno alla volta i FITS, per ciascuno
-;    selezionare quali dati si vuole TENERE, usando i pulsanti;
-; 7) col pulsante "Back" si torna indietro di un subscan, il cui precedente flagging
-;    viene cancellato. Il pulsante "Skip" salta il subscan in esame. Non è possibile
-;    invocare "Back" dopo uno "Skip" (il bottone, per sicurezza, viene disattivato);
-; 8) per interrompere, cliccare sul pulsante "STOP and EXIT".
-;
+; USAGE:
+; 1) Compile and run dataflagging.pro; 
+; 2) (optional) select the user name's initials from the upper drop-down menu;
+; 3) click on BROWSE button and select the parent folder containing the FITS-full folders; 
+; 4) click on GO!;
+; 5) if a checkfile (i.e. the list of flagged files) already exists for a FITS folder, 
+;    a dialog box will appear. By answering "YES", users indicate they want to keep those 
+;    flags and go on appending new ones for the so-far-unflagged data (if any). 
+;    By answering "NO", they decide to start over, thus rewriting the checkfile; 
+; 6) A new window will appear, where the content of each FITS file will be displayed. 
+;    The two plots show: 
+;      left --> Section CH0
+;      right --> Section CH1  
+;    Users are asked to express their opinion on the sections to be KEPT (i.e. sent
+;    to the following phases of the data reduction) by clicking on NONE, LEFT, RIGHT, BOTH. 
+;    The button "BOTH (V. good)" can be ignored, or used to pinpoint the particularly 
+;    good acquisitions (for future uses, such as the implementation of AI tools);
+; 7) the "Skip" button skips the FITS presently displayed, leaving it unflagged (beware: CAP will by defaut consider it good!);
+; 8) using the "Back" button, the previous FITS is re-displayed and re-flagged (the old flag is overwritten).
+;    It is not possible to invoke "Back" after a "Skip" (for this reason the button is disabled);
+; 9) to interrupt the procedure, yet saving all the previously-performed flagging, click on "STOP and EXIT".
+
 
 pro WID_BASE_0, GROUP_LEADER=wGroup, _EXTRA=_VWBExtra_
 
@@ -358,7 +359,7 @@ end
 ;
 ; Empty stub procedure used for autoloading.
 ;
-pro newflag, GROUP_LEADER=wGroup, _EXTRA=_VWBExtra_
+pro dataflagging, GROUP_LEADER=wGroup, _EXTRA=_VWBExtra_
   WID_BASE_0, GROUP_LEADER=wGroup, _EXTRA=_VWBExtra_
 end
 
