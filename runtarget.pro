@@ -44,7 +44,7 @@ pro runtarget, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic
   ; orders of magnitude of 10E+06..10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Oct 18, 2017
+  ; Last edited: Nov 22, 2017
   ;
 
 
@@ -502,6 +502,7 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
               endelse
             endelse
           endif
+          if j eq 0 then printf, Unit2, 'EXLIN calib interval: ', my_lin_interval, ' for scan ', scanname, format='(A,1X,I3,1X,A,1X,A)'
           ; assigning the identified best-matching cnt2Jy values to the final attributes, for the subsequent analysis
           mylinc2j_0=linc2j_0[my_lin_interval]+mymjd*linm_0[my_lin_interval]
           mylinc2j_1=linc2j_1[my_lin_interval]+mymjd*linm_1[my_lin_interval]
@@ -543,6 +544,7 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
               endelse
             endelse
           endif
+          if j eq 0 then printf, Unit2, 'EXCUB calib interval: ', my_cub_interval, ' for scan ', scanname, format='(A,1X,I3,1X,A,1X,A)'
           ; assigning the identified best-matching cnt2Jy values to the final attributes, for the subsequent analysis
           mycubc2j_0=cubc2j_0[my_cub_interval]+mymjd*cubm_0[my_cub_interval]
           mycubc2j_1=cubc2j_1[my_cub_interval]+mymjd*cubm_1[my_cub_interval]
@@ -685,7 +687,7 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       xdec=(data.decj2000-decs)/!dpi*180.0
       xra=(data.raj2000-ras)*cos(mean(data.decj2000))/!dpi*180.0
 
-      scanname = sublist[j]
+      ; scanname = sublist[j]
       case flagcode[j] of
         '-1c0': begin
           k0=1
@@ -927,7 +929,7 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       endcase
 
       PRINTF, Unit2, " "
-      PRINTF, Unit2, "****** "+scanname+" ******"
+      ; PRINTF, Unit2, "****** "+scanname+" ******"
       PRINTF, Unit2, FORMAT = '("* MJD = ", D014.8)', data[midscan].time
       PRINTF, Unit2, "* nsamples = ", ndat[1]
       PRINTF, Unit2, "* Beamspan = ", beamspan, " [s]"
@@ -1228,7 +1230,6 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   endif
 
   free_lun, Unit2, /force
-
 
   print, ' '
   print, '**************************'

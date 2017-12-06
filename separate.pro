@@ -23,13 +23,15 @@
 ;
 ; IDL> separa, /extlist
 ;
-; Latest update: Oct 18th, 2017
+; Latest update: Dec 6th, 2017
 
 
 pro separate, multiK=multiK, extlist=extlist
 
+  print, ' '
   sp=path_sep()
   pin=dialog_pickfile(/DIRECTORY, title='Select main folder, containing the YYYMMDD data folders')
+  print, 'Selected folder is ', pin
 
   if not keyword_set(multiK) then Kband='single' else Kband='multi'
 
@@ -69,15 +71,16 @@ pro separate, multiK=multiK, extlist=extlist
   bandnum=n_elements(bands)
   mybounds=make_array(1,bandnum,/integer)
 
- 
+
   ; Checking whether the folder for DAT files (produced by the CalibrationTool) exists.
-  ; If not, it is created.  
+  ; If not, it is created.
   ans0=file_test(pin+'DATS',/DIRECTORY)
   if ans0 eq 0 then begin
-    print, 'Creating folder for dat files'
-    file_mkdir, pin+sp+'DATS'
+    print, 'Creating subfolder for .dat files...'
+    file_mkdir, pin+'DATS'
   endif
 
+  print, 'Creating subfolders for band-separated files...'
   for b=0, bandnum-1 do begin
 
     ; Checking whether the band-dependant and type-dependant folders alreasy exist.
@@ -86,7 +89,6 @@ pro separate, multiK=multiK, extlist=extlist
     ans1=file_test(pin+bands[b],/DIRECTORY)
 
     if ans1 eq 0 then begin
-      print, 'Creating folder for '+bands[b]+'-band files'
       file_mkdir, pin+bands[b]
     endif
 
@@ -112,18 +114,17 @@ pro separate, multiK=multiK, extlist=extlist
 
   list = FILE_SEARCH(pin+'20*', COUNT=number, /TEST_DIRECTORY)
 
-  for i =0,number-1 do begin  ; loop over 'number' days
-    print, list[i]
+  for i=0,number-1 do begin  ; loop over 'number' days
+    ; print, list[i]
     datlist = file_search(list[i]+sp+'*.dat', COUNT=datnum)
     if datnum ne 0 then begin
       for j=0,datnum-1 do begin
-        file_move, datlist[j], pin+sp+'DATS'+sp, /OVERWRITE
+        file_move, datlist[j], pin+'DATS'+sp, /OVERWRITE
       endfor
     endif
 
     sublist = FILE_SEARCH(list[i]+sp+'20*', /TEST_DIRECTORY, COUNT=subnum)
     for j=0,subnum-1 do begin  ; loop over 'subnum' scans
-      ; print, sublist[j]
       subsublist = FILE_SEARCH(sublist[j]+sp+'*.fits', COUNT=subsubnum)
       ; obtaining info from the first subscan (i.e. the first FITS in the folder)
       RFinfo=mrdfits(subsublist[0],2,/silent)
@@ -153,15 +154,19 @@ pro separate, multiK=multiK, extlist=extlist
       if (strmatch(sublist[j],'*sky*',/FOLD_CASE)) then type = 'SKYDIPS'+sp ; overriding the default choice: the file is a SKYDIP
 
       ; actually moving the folders
+      if (i eq 0) and (j eq 0) then print, 'Moving files...'
       for b=0, bandnum-1 do begin
         case bands[b] of
-          ; edit here in case you have added more bands
+          ; edit here in case you need to add more bands
           'P': mybounds=pbounds
           'L': mybounds=lbounds
           'S': mybounds=sbounds
           'C': mybounds=cbounds
           'X': mybounds=xbounds
           'K': mybounds=kbounds
+          'K-low': mybounds=[kbounds[0],kbounds[1]]
+          'K-mid': mybounds=[kbounds[1],kbounds[2]]
+          'K-hi': mybounds=[kbounds[2],kbounds[3]]
         endcase
         intervals=n_elements(mybounds)-1
         for int=0, intervals-1 do begin
@@ -176,22 +181,30 @@ pro separate, multiK=multiK, extlist=extlist
     endfor ; ending cycle on scans
 
   endfor; ending cycle on days
-  
-  ; removing empty/unused folders (the non-empty ones will be spared!)
+
+  ; removing empty/unused folders (the non-empty ones will be by default spared!)
+  print, 'Removing empty subfolders...'
   for b=0, bandnum-1 do begin
     file_delete, pin+bands[b]+sp+'CALIBRATORS',/quiet
     file_delete, pin+bands[b]+sp+'TARGETS',/quiet
     file_delete, pin+bands[b]+sp+'SKYDIPS',/quiet
-    file_delete, pin+bands[b],/quiet
+    file_delete, pin+bands[b]+sp,/quiet
   endfor
-    file_delete, pin+sp+'DATS',/quiet
-    file_delete, pin+sp+'20*',/quiet
+  file_delete, pin+'DATS',/quiet
 
+  tobedel=file_search(pin+'20*', /TEST_DIRECTORY, count=delnum)
+  for dn=0, delnum-1 do begin
+    file_delete, tobedel[dn],/quiet
+  endfor
 
-  print, '***********'
-  print, 'PROGRAM END'
-  print, '***********'
+  print, ' '
+  print, '**********'
+  print, '   DONE    '
+  print, '**********'
+  print, ' '
+  
   return
+
 end
 
 

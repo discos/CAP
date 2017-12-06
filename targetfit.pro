@@ -44,9 +44,9 @@ pro getflux, peak_cnt, err_cnt, tau0, datael, cnt2Jy, err_cnt2Jy, outflux, err_o
   err_outflux = outflux*sqrt((err_cnt/peak_cnt)^2+(err_cnt2Jy/cnt2Jy)^2)
   Level=Level*cnt2Jy
   PRINTF, Unit2, " "
-  PRINTF, Unit2, "outflux = (", outflux, "+-", err_outflux, ") [Jy]"
+  PRINTF, Unit2, "outflux = (", outflux, "+-", err_outflux, ") [Jy]", format='(A,1X,D7.3,1X,A,1X,D7.3,1X,A)'
   PRINTF, Unit2, " "
-  PRINTF, Unit2, "Level = ", Level, " [Jy]" 
+  PRINTF, Unit2, "Level = ", Level, " [Jy]", format='(A,1X,D6.1,1X,A)' 
   PRINTF, Unit2, " "
   return
 end
@@ -58,7 +58,7 @@ pro targetfit, scanflag,stacflag,polyflag,section,tipo,allpath,namefile,Out3,cnt
 ; Main procedure, devoted to the fitting operations, both in the linear and cubic cases, for calibrators. 
 ;
 ; Authors: Marcello Giroletti, Simona Righini
-; Last edited: Oct 6, 2017
+; Last edited: Nov 22, 2017
 ;
 
   ; scanflag = scan buono (=1) o cattivo (=0)

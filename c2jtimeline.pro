@@ -6,12 +6,12 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
   ;
   ; Users must specify if they want to extract linearly fitted cnt2Jy values (linfit value inside each gap),
   ; by setting the /linf option:
-  ; 
+  ;
   ; IDL> c2jtimeline, /linf
-  ; 
-  ; By default, runcalib's output files are searched for inside the working folder. 
+  ;
+  ; By default, runcalib's output files are searched for inside the working folder.
   ; Users might graphically select a different folder by using the /pickpath option:
-  ; 
+  ;
   ; IDL> c2jtimeline, /pickpath
   ;
   ; c2jtimeline'2 detailed results are plotted into .ps files, one devoted to the EXLIN results, one to the EXCUB results.
@@ -25,7 +25,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
   ; orders of magnitude of 10E+06, 10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Oct 26, 2017
+  ; Last edited: Nov 3, 2017
   ;
 
   sep=path_sep()
@@ -34,7 +34,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
     workpath=dialog_pickfile(/DIRECTORY)
   endif else begin
     cd, current=curr
-    workpath=curr+sep
+    workpath=curr+sep+'CALIBRATORS'+sep
   endelse
 
 
@@ -115,8 +115,10 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
 
 
     if f eq 0 then origin='EXLIN' else origin='EXCUB'
-
-    wholeplot=errorplot(el_d, cnt2Jy_0_el, el_d*0, err_cnt2Jy_0_el, name='CH0')
+    
+    real0=where(cnt2Jy_0_el ne -99)
+    real1=where(cnt2Jy_1_el ne -99)
+    wholeplot=errorplot(el_d[real0], cnt2Jy_0_el[real0], el_d[real0]*0, err_cnt2Jy_0_el[real0], name='CH0')
     wholeplot.title='All cnt2Jy measurements - '+origin
     wholeplot.xtitle='Elevation (deg)'
     wholeplot.ytitle='Jy/cnt'
@@ -126,7 +128,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
     wholeplot.sym_filled=1
     wholeplot.sym_size=1.0
     wholeplot.xrange=[0,90]
-    wholeplot2=errorplot(el_d, cnt2Jy_1_el, el_d*0, err_cnt2Jy_1_el,/overplot, name='CH1')
+    wholeplot2=errorplot(el_d[real1], cnt2Jy_1_el[real1], el_d[real1]*0, err_cnt2Jy_1_el[real1],/overplot, name='CH1')
     wholeplot2.linestyle=' '
     wholeplot2.color='deep sky blue'
     wholeplot2.symbol='triangle'
@@ -256,63 +258,81 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
           ;          print, ' '
           ;          stop
 
-          ystep=(max(c2J0plot+errc2j0plot)-min(c2J0plot-errc2j0plot))/10.0
+          realc2j0=where(c2J0plot ne -99)
+          ystep=(max(c2J0plot[realc2j0]+errc2J0plot[realc2j0])-min(c2J0plot[realc2j0]-errc2J0plot[realc2j0]))/10.0
           labstep=ystep
           if ystep eq 0 then begin
             ystep=0.1
             labstep=ystep/numcals
           endif
-          ploterror, el0plot, c2J0plot, el_0val*0, errc2j0plot, /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_0", xtitle="Elevation (deg)", charsize=1.0
-          ;plot, el0plot, c2J0plot, /NODATA, xrange=[0,90], yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elevation (deg)"
+
+          istherec2J0=n_elements(c2J0plot)
+          if istherec2J0 ne 0 then begin
+            ploterror, el0plot[realc2j0], c2J0plot[realc2j0], el_0val[realc2j0]*0, errc2j0plot[realc2j0], /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_0", xtitle="Elevation (deg)", charsize=1.0
+            ;plot, el0plot, c2J0plot, /NODATA, xrange=[0,90], yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elevation (deg)"
+          endif
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid0] eq nameu[i], namenum)
             if namenum ge 1 then begin
-              oplot, el0plot[thiscal], c2J0plot[thiscal], color=i,  psym=2
-              oploterror, el0plot[thiscal], c2J0plot[thiscal], el_0val[thiscal]*0, errc2j0plot[thiscal], color=i,  psym=2
-              xyouts, 0, max(c2J0plot)-i*labstep, nameu[i], color=i, charsize=0.8, charthick=2
+              if istherec2J0 ne 0 then begin
+                oplot, el0plot[thiscal], c2J0plot[thiscal], color=i,  psym=2
+                oploterror, el0plot[thiscal], c2J0plot[thiscal], el_0val[thiscal]*0, errc2j0plot[thiscal], color=i,  psym=2
+                xyouts, 0, max(c2J0plot)-i*labstep, nameu[i], color=i, charsize=0.8, charthick=2
+              endif
             endif
           endfor
 
 
-          xstep=(max(th0plot)-min(th0plot))/10.0
+          xstep=(max(th0plot)-min(th0plot))/10.0 
+          if xstep eq 0 then xstep=1
 
           if keyword_set(detplot) then begin
-            displot=errorplot(th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, layout=[1,2,1])
-            displot.title=origin+' cnt2Jy_0 vs Time, INT'+strcompress(string(j),/remove_all)
-            displot.xtitle='Elapsed time (hh.h)'
-            displot.ytitle='Jy/cnt'
-            displot.xrange=[min(th0plot)-xstep,max(th0plot)+xstep]
+            if istherec2J0 ne 0 then begin
+              displot=errorplot(th0plot[realc2j0], c2J0plot[realc2j0], th0plot[realc2j0]*0, errc2j0plot[realc2j0], /NODATA, layout=[1,2,1])
+              displot.title=origin+' cnt2Jy_0 vs Time, INT'+strcompress(string(j),/remove_all)
+              displot.xtitle='Elapsed time (hh.h)'
+              displot.ytitle='Jy/cnt'
+              displot.xrange=[min(th0plot)-xstep,max(th0plot)+xstep]
+              displot.yrange=[min(c2J0plot[realc2j0])-ystep,max(th0plot[realc2j0])+ystep]
+            endif
           endif
 
-          ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xrange=[min(th0plot)-xstep,max(th0plot)+xstep], ys=1, ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
-          ; ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xs=1, yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
-          ;
+          if istherec2J0 ne 0 then begin
+            ploterror, th0plot[realc2j0], c2J0plot[realc2j0], th0plot[realc2j0]*0, errc2j0plot[realc2j0], /NODATA, xrange=[min(th0plot)-xstep,max(th0plot)+xstep], ys=1, ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
+            ; ploterror, th0plot, c2J0plot, th0plot*0, errc2j0plot, /NODATA, xs=1, yrange=[min(c2J0plot-ystep),max(c2J0plot+ystep)], ytitle="cnt2Jy_0", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+            ;
+          endif
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid0] eq nameu[i], namenum)
             if namenum ge 1 then begin
-              oplot, th0plot[thiscal], c2J0plot[thiscal], color=i, psym=2
-              oploterror, th0plot[thiscal], c2J0plot[thiscal], th0plot[thiscal]*0, errc2j0plot[thiscal], color=i, psym=2
+
+              if istherec2J0 ne 0 then begin
+                oplot, th0plot[thiscal], c2J0plot[thiscal], color=i, psym=2
+                oploterror, th0plot[thiscal], c2J0plot[thiscal], th0plot[thiscal]*0, errc2j0plot[thiscal], color=i, psym=2
+              endif
 
               if keyword_set(detplot) then begin
-                ; object graphics
-                displot2=errorplot(th0plot[thiscal], c2J0plot[thiscal], th0plot[thiscal]*0, errc2j0plot[thiscal], NAME=nameu[i], /overplot)
-                displot2.symbol=sym[i]
-                displot2.linestyle=' '
-                displot2.color=colors[i]
-                displot2.sym_size=1.5
-                displot2.ERRORBAR_COLOR=colors[i]
-                displot2.ERRORBAR_CAPSIZE=0.2
-                displot2.sym_filled=1
-                displot3=plot(th_0val, y_0,/overplot)
-                displot3.color='dark slate gray'
-                displot3.linestyle='solid'
-                displot4=plot(th_0val, y_0min,/overplot)
-                displot4.color='dark slate gray'
-                displot4.linestyle='dashed'
-                displot5=plot(th_0val, y_0max,/overplot)
-                displot5.color='dark slate gray'
-                displot5.linestyle='dashed'
-                lab=text(max(th0plot)-xstep,max(c2J0plot+errc2j0plot)-(i+1)*ystep, nameu[i], color=colors[i],/data, font_size=10)
+                if istherec2J0 ne 0 then begin
+                  ; object graphics
+                  displot2=errorplot(th0plot[thiscal], c2J0plot[thiscal], th0plot[thiscal]*0, errc2j0plot[thiscal], NAME=nameu[i], /overplot)
+                  displot2.symbol=sym[i]
+                  displot2.linestyle=' '
+                  displot2.color=colors[i]
+                  displot2.sym_size=1.5
+                  displot2.ERRORBAR_COLOR=colors[i]
+                  displot2.ERRORBAR_CAPSIZE=0.2
+                  displot2.sym_filled=1
+                  displot3=plot(th_0val, y_0,/overplot)
+                  displot3.color='dark slate gray'
+                  displot3.linestyle='solid'
+                  displot4=plot(th_0val, y_0min,/overplot)
+                  displot4.color='dark slate gray'
+                  displot4.linestyle='dashed'
+                  displot5=plot(th_0val, y_0max,/overplot)
+                  displot5.color='dark slate gray'
+                  displot5.linestyle='dashed'
+                  lab=text(max(th0plot)-xstep,max(c2J0plot+errc2j0plot)-(i+1)*ystep, nameu[i], color=colors[i],/data, font_size=10)
+                endif
               endif
 
             endif
@@ -371,61 +391,78 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
           y_1min=Ch_1[0]+(Ch_1[1])*th_1val+Ch_sig1[0]
           y_1max=Ch_1[0]+(Ch_1[1])*th_1val-Ch_sig1[0]
 
-          ystep=(max(c2J1plot+errc2J1plot)-min(c2J1plot-errc2J1plot))/10.0
+          realc2j1=where(c2J1plot ne -99)
+          ystep=(max(c2J1plot[realc2j1]+errc2J1plot[realc2j1])-min(c2J1plot[realc2j1]-errc2J1plot[realc2j1]))/10.0
           labstep=ystep
           if ystep eq 0 then begin
             ystep=0.1
             labstep=ystep/numcals
           endif
-          ploterror, el1plot, c2J1plot, el1plot*0, errc2J1plot, /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_1", xtitle="Elevation (deg)", charsize=1.0
-          ;   plot, el1plot, c2J1plot, /NODATA, xrange=[0,90], yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elevation (deg)"
+
+          istherec2J1=n_elements(c2J1plot)
+          if istherec2J1 ne 0 then begin
+            ploterror, el1plot[realc2j1], c2J1plot[realc2j1], el1plot[realc2j1]*0, errc2J1plot[realc2j1], /NODATA, xrange=[0,90], ys=1, ytitle="cnt2Jy_1", xtitle="Elevation (deg)", charsize=1.0
+            ;   plot, el1plot, c2J1plot, /NODATA, xrange=[0,90], yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elevation (deg)"
+          endif
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid1] eq nameu[i], namenum)
             if namenum ge 1 then begin
-              oplot, el1plot[thiscal], c2J1plot[thiscal], color=i,  psym=6
-              oploterror, el1plot[thiscal], c2J1plot[thiscal], el1plot[thiscal]*0, errc2J1plot[thiscal], color=i,  psym=6
-              xyouts, 0, max(c2J1plot)-i*labstep, nameu[i], color=i, charsize=0.8, charthick=2
+              if istherec2J1 ne 0 then begin
+                oplot, el1plot[thiscal], c2J1plot[thiscal], color=i,  psym=6
+                oploterror, el1plot[thiscal], c2J1plot[thiscal], el1plot[thiscal]*0, errc2J1plot[thiscal], color=i,  psym=6
+                xyouts, 0, max(c2J1plot)-i*labstep, nameu[i], color=i, charsize=0.8, charthick=2
+              endif
             endif
           endfor
 
 
           xstep=(max(th1plot)-min(th1plot))/10.0
+          if xstep eq 0 then xstep=1
 
           if keyword_set(detplot) then begin
-            displot6=errorplot(th1plot, c2J1plot, th1plot*0, errc2j1plot, /NODATA, layout=[1,2,2], /current)
-            displot6.title=origin+' cnt2Jy_1 vs Time, INT'+strcompress(string(j),/remove_all)
-            displot6.xtitle='Elapsed time (hh.h)'
-            displot6.ytitle='Jy/cnt'
-            displot6.xrange=[min(th1plot)-xstep,max(th1plot)+xstep]
+            if istherec2J1 ne 0 then begin
+              displot6=errorplot(th1plot[realc2j1], c2J1plot[realc2j1], th1plot[realc2j1]*0, errc2j1plot[realc2j1], /NODATA, layout=[1,2,2], /current)
+              displot6.title=origin+' cnt2Jy_1 vs Time, INT'+strcompress(string(j),/remove_all)
+              displot6.xtitle='Elapsed time (hh.h)'
+              displot6.ytitle='Jy/cnt'
+              displot6.xrange=[min(th1plot)-xstep,max(th1plot)+xstep]
+              displot6.yrange=[min(c2J1plot[realc2j1])-ystep,max(th1plot[realc2j1])+ystep]
+            endif
           endif
 
-          ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xrange=[min(th1plot)-xstep,max(th1plot)+xstep], ys=1, ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
-          ; ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xs=1, yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+          if istherec2J1 ne 0 then begin
+            ploterror, th1plot[realc2j1], c2J1plot[realc2j1], th1plot[realc2j1]*0, errc2J1plot[realc2j1], /NODATA, xrange=[min(th1plot)-xstep,max(th1plot)+xstep], ys=1, ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)', charsize=1.0
+            ; ploterror, th1plot, c2J1plot, th1plot*0, errc2J1plot, /NODATA, xs=1, yrange=[min(c2J1plot-ystep),max(c2J1plot+ystep)], ytitle="cnt2Jy_1", xtitle="Elapsed hours since "+day, XTICKFORMAT='(f5.2)'
+          endif
           for i=0,n_elements(nameu)-1 do begin
             thiscal=where(name[valid1] eq nameu[i], namenum)
             if namenum ge 1 then begin
-              oplot, th1plot[thiscal], c2J1plot[thiscal], color=i,  psym=6
-              oploterror, th1plot[thiscal], c2J1plot[thiscal], th1plot[thiscal]*0, errc2J1plot[thiscal], color=i, psym=6
+              if istherec2J1 ne 0 then begin
+                oplot, th1plot[thiscal], c2J1plot[thiscal], color=i,  psym=6
+                oploterror, th1plot[thiscal], c2J1plot[thiscal], th1plot[thiscal]*0, errc2J1plot[thiscal], color=i, psym=6
+              endif
 
               if keyword_set(detplot) then begin
-                ; object graphics
-                displot7=errorplot(th1plot[thiscal], c2J1plot[thiscal], th1plot[thiscal]*0, errc2j1plot[thiscal], NAME=nameu[i], /overplot)
-                displot7.symbol=sym[i]
-                displot7.linestyle=' '
-                displot7.color=colors[i]
-                displot7.sym_size=1.5
-                displot7.ERRORBAR_COLOR=colors[i]
-                displot7.ERRORBAR_CAPSIZE=0.2
-                displot7.sym_filled=1
-                displot8=plot(th_1val, y_1,/overplot)
-                displot8.color='dark slate gray'
-                displot8.linestyle='solid'
-                displot9=plot(th_1val, y_1min,/overplot)
-                displot9.color='dark slate gray'
-                displot9.linestyle='dashed'
-                displot10=plot(th_1val, y_1max,/overplot)
-                displot10.color='dark slate gray'
-                displot10.linestyle='dashed'
+                if istherec2J1 ne 0 then begin
+                  ; object graphics
+                  displot7=errorplot(th1plot[thiscal], c2J1plot[thiscal], th1plot[thiscal]*0, errc2j1plot[thiscal], NAME=nameu[i], /overplot)
+                  displot7.symbol=sym[i]
+                  displot7.linestyle=' '
+                  displot7.color=colors[i]
+                  displot7.sym_size=1.5
+                  displot7.ERRORBAR_COLOR=colors[i]
+                  displot7.ERRORBAR_CAPSIZE=0.2
+                  displot7.sym_filled=1
+                  displot8=plot(th_1val, y_1,/overplot)
+                  displot8.color='dark slate gray'
+                  displot8.linestyle='solid'
+                  displot9=plot(th_1val, y_1min,/overplot)
+                  displot9.color='dark slate gray'
+                  displot9.linestyle='dashed'
+                  displot10=plot(th_1val, y_1max,/overplot)
+                  displot10.color='dark slate gray'
+                  displot10.linestyle='dashed'
+                endif
               endif
 
             endif
@@ -452,8 +489,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
 
       endif else begin
         print, 'No measurements in time interval number ', strcompress(string(j+1),/remove_all)
-        printf, Unit, 'Interval number ',strcompress(string(j+1),/remove_all),' does not contain measurements'
-        print, 'Going tp the next step'
+        ; printf, Unit, 'Interval number ',strcompress(string(j+1),/remove_all),' does not contain measurements'
       endelse
 
     endfor

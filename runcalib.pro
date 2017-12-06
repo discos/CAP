@@ -47,7 +47,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ; orders of magnitude of 10E+06..10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Oct 18, 2017
+  ; Last edited: Nov 20, 2017
   ;
 
 
@@ -70,7 +70,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
     skydippath=dialog_pickfile(/DIRECTORY, TITLE='Please pick folder containing file Tau.txt')
   endif else begin
     CD, CURRENT=curr
-    workpath=curr+sep+'SKYDIPS'+sep
+    skydippath=curr+sep+'SKYDIPS'+sep
   endelse
 
   if keyword_set(linear) then begin
@@ -382,13 +382,11 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
     flagcode=strarr(subnumber)
     flagcode[*]='+1cx'
     if (err lt 0) then begin
-      print, "No valid flagging information for this scan"
-      print, "Temporarily assuming all scans are good"
+      print, "No valid flagging information for this scan --> assuming all scans are good"
     endif else begin
       readcol, checkfile, F='a,a,a', subscan_t, flagcode_t, who, /SILENT
       if (n_elements(subscan_t) lt subnumber) then begin
-        print, "Some subscans miss flagging information"
-        print, "Temporarily assuming those subscans are good"
+        print, "Some subscans lack flagging information --> assuming those subscans are good"
       endif
       for n_flag = 0, n_elements(subscan_t)-1 do begin
         for j_flag = 0, subnumber-1 do begin
