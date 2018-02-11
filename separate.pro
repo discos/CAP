@@ -23,14 +23,14 @@
 ;
 ; IDL> separa, /extlist
 ;
-; Latest update: Dec 6th, 2017
+; Latest update: Feb 11th, 2018
 
 
 pro separate, multiK=multiK, extlist=extlist
 
   print, ' '
   sp=path_sep()
-  pin=dialog_pickfile(/DIRECTORY, title='Select main folder, containing the YYYMMDD data folders')
+  pin=dialog_pickfile(/DIRECTORY, title='Select main folder, containing the YYYYMMDD data folders')
   print, 'Selected folder is ', pin
 
   if not keyword_set(multiK) then Kband='single' else Kband='multi'

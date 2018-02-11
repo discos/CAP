@@ -75,7 +75,7 @@ pro WID_BASE_0, GROUP_LEADER=wGroup, _EXTRA=_VWBExtra_
 
 
   ;Materiale nel TAB CFG
-  userlist=['NA','AT','EV','MG','SR','AZ','MM']
+  userlist=['NA','U1','U2','U3','U4','U5','U6','U7','U8','U9']
   flags = ['-1c0','-1c1','+0cx','+1cx','-1cx']
   user='NA'
 
