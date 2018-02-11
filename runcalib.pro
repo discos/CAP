@@ -7,7 +7,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ; If users want to graphically choose the data folder, they must use:
   ;
   ;  IDL> runcalib, /pickpath    in order to select the path to the data parent folder (otherwise the chosen path is ./CALIBRATORS)
-  ;  IDL> runcalib, /skypath     in order to select the path to the folder containing skydips (otherwise the chosen path is ./SKYDIPS)
+  ;  IDL> runcalib, /skypath     in order to select the path to the folder containing the Tau.txt file (otherwise the chosen path is ./SKYDIPS)
   ;
   ; Measurements for all the single subscans can be obtained by explicitly choosing this option:
   ;
@@ -38,10 +38,10 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ;
   ; overrides the use of the standard gain curves; it poses Gain=1 for all the elevations,
   ; thus practically avoiding the elevation-dependent gain compensation.
-  ; 
+  ;
   ; COMPATIBILITY WITH CONVERTED FILES
   ; FITS files achieved with older versions of DISCOS (dating back to years 2008-2015)
-  ; need to be converted into the proper FITS format (ask for procedure named updatefits.pro). 
+  ; need to be converted into the proper FITS format (ask for procedure named updatefits.pro).
   ; The program automatically handles the TP-like files resulting from the
   ; conversion of SARDARA acquisitions, which have raw counts levels in the
   ; orders of magnitude of 10E+06..10E+07, producing properly-formatted output tables.
@@ -51,7 +51,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ;
 
 
-  common logistics, workpath, calpath, sep, skydippath, myextlist, fitchoice, dosingle, doplot
+  common logistics, workpath, calpath, sep, skydippath, myextlist, fitchoice, dosingle, doplot, applygc, applytau
 
   close, /all  ; to close possible pending text files
 
@@ -70,6 +70,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
     skydippath=dialog_pickfile(/DIRECTORY, TITLE='Please pick folder containing file Tau.txt')
   endif else begin
     CD, CURRENT=curr
+    applytau='No'
     skydippath=curr+sep+'SKYDIPS'+sep
   endelse
 
@@ -86,6 +87,8 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   endif else begin
     myextlist=' '
   endelse
+  
+  if keyword_set(skipgc) then applygc='No' else applygc='Yes' 
 
   cal_stack, freq=freq
   return
@@ -152,6 +155,11 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   RFinfo=MRDFITS(sublist[0],2,/SILENT)
   Sectinfo=MRDFITS(sublist[0],1,/SILENT)
 
+  Tant=MRDFITS(sublist[0],5,/SILENT)
+  cnt2K_0=Tant[0].ch0/data[0].ch0    ; K/cnt ricavato da uso della marca pre-scan
+  cnt2K_1=Tant[0].ch1/data[0].ch1    ; K/cnt ricavato da uso della marca pre-scan
+  gaintime=data[0].time              ; associated MJD (first sample of first subscan)
+
   ; read frequency and bandwidth from RF table
   bw=RFinfo[0].bandWidth
 
@@ -181,8 +189,8 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         ; this is X band
         A_0=[0.730487,0.00773332,-5.54743e-05,0]   ; updated 2015, but it is not opacity-corrected
         A_1=[0.730487,0.00773332,-5.54743e-05,0]   ; updated 2015, but it is not opacity-corrected
-       ; A_0=[6.1059261E-01,1.0623634E-02,-7.2457279E-05,0]  ; origin???
-       ; A_1=[6.1059261E-01,1.0623634E-02,-7.2457279E-05,0]  ; origin???
+        ; A_0=[6.1059261E-01,1.0623634E-02,-7.2457279E-05,0]  ; origin???
+        ; A_1=[6.1059261E-01,1.0623634E-02,-7.2457279E-05,0]  ; origin???
       endif
       if (freq gt 18000 and freq le 18500) then begin
         ; this is K-low band
@@ -226,8 +234,8 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       if (freq gt 4000 and freq lt 6000) then begin
         ; this is C band
         beam=7.5  ; fixed value!
-       ; A_0=[0.98463659,0.00017053038,1.9348601e-09,0] ; old
-       ; A_1=[0.98463659,0.00017053038,1.9348601e-09,0] ; old
+        ; A_0=[0.98463659,0.00017053038,1.9348601e-09,0] ; old
+        ; A_1=[0.98463659,0.00017053038,1.9348601e-09,0] ; old
         A_0=[0.95227062926,0.00198726460815,-2.0685473288e-05,0] ; Cassaro, Oct 16th 2017
         A_1=[0.95227062926,0.00198726460815,-2.0685473288e-05,0] ; Cassaro, Oct 16th 2017
       endif
@@ -296,6 +304,23 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
   openw, Unit2, workpath+'cal_prints.txt', /GET_LUN
 
+  openw, Unit20, workpath+'gain.txt', /GET_LUN
+  printf, Unit20, '# Gain estimates obtained using the Tant data table inside FITS,'
+  printf, Unit20, '# in turn produced considering the pre-scan ON-OFF mark usage during Tsys measurements.'
+  printf, Unit20, '# This estimate is by default corrected for the nominal gain curve shape'
+  printf, Unit20, '# the opacity measured via skydips (if applied to the reduction).'
+  printf, Unit20, '# (i.e. corrected for the elevation position).' 
+  printf, Unit20, '# Furthermore, if the /skypath option was chosen for the analysis and a'
+  printf, Unit20, '# correct Tau.txt file was found, these estimates are also corrected for opacity.'
+  printf, Unit20, ' '
+  printf, Unit20, '# If “apparent” gains are needed, i.e. not compensated for opacity'
+  printf, Unit20, '# and elevation, use the pipeline without the /skypath option and'
+  printf, Unit20, '# selecting the /skipgc option. This way, no opacity or gain curve'
+  printf, Unit20, '# correction will be applied.'
+  printf, Unit20, ' '
+  printf, Unit20, '     CALIBRATOR Elevat  MJD         G_0   G_1'
+  printf, Unit20, '                deg                 K/Jy  K/Jy'
+
 
   ; reads skydip information
   ans=file_test(skydippath+'Tau.txt')
@@ -307,11 +332,13 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       ; tau0R[t]=tau_empR[t]
     endfor
     caltau = 1
+    applytau = 'Yes'
   endif else begin
     print, ' '
     print, '+++++++++++++++++++++++++++++++++++++++++++++'
     print, 'Beware: no Tau.txt available, assuming tau0=0
     print, '+++++++++++++++++++++++++++++++++++++++++++++'
+    applytau = 'No'
     wait, 0.5
     tau0L=[0,0]
     tau0R=[0,0]
@@ -810,7 +837,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       g_0=A_0[0]+A_0[1]*el_d+A_0[2]*el_d^2+A_0[3]*el_d^3
       g_1=A_1[0]+A_1[1]*el_d+A_1[2]*el_d^2+A_1[3]*el_d^3
 
-      if keyword_set(skipgc) then begin
+      if applygc eq 'No' then begin
         ; Overriding the gain computation and applying a flat gain curve (constant value = 1.0)
         g_0=1.0
         g_1=1.0
@@ -1109,15 +1136,20 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
         err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
 
+        K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
+        K2Jy_1 = cnt2K_1/cnt2Jy_1    ; gain as obtained through the Tant data table --> Used by spectral observers only
+
         ;         last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
         ;         as the above offset compensation affects even them (and steers them a little bit from the dummy value)
         if (c0[0] lt 0) or (c0[1] lt 0) then begin
           cnt2Jy_0 = -99.0
           err_cnt2Jy_0 = -99.0
+          K2Jy_0 = -99.0
         endif
         if (c1[0] lt 0) or (c1[1] lt 0) then begin
           cnt2Jy_1 = -99.0
           err_cnt2Jy_1 = -99.0
+          K2Jy_1 = -99.0
         endif
       endelse
 
@@ -1188,15 +1220,20 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
         err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
 
+        K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
+        K2Jy_1 = cnt2K_1/cnt2Jy_1    ; gain as obtained through the Tant data table --> Used by spectral observers only
+
         ; last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
         ; as the above offset compensation affects even them (and steers them a little bit from the dummy value)
         if (c0[0] lt 0) or (c0[1] lt 0) then begin
           cnt2Jy_0 = -99.0
           err_cnt2Jy_0 = -99.0
+          K2Jy_0 = -99.0
         endif
         if (c1[0] lt 0) or (c1[1] lt 0) then begin
           cnt2Jy_1 = -99.0
           err_cnt2Jy_1 = -99.0
+          K2Jy_1 = -99.0
         endif
 
       endelse
@@ -1213,9 +1250,17 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           err_cnt2Jy_0, err_cnt2Jy_1;, SNR0, SNR1
       endelse
       ; note that SNR is not reported as it was not recalculated for the combined types
+
     endif
 
+    printf, Unit20, sourcename, el_d, data[0].time, K2Jy_0, K2Jy_1, format='(a15,D8.4,D12.5,1X,D5.3,1X,D5.3)'
+
   endfor
+  
+  printf, Unit20, ' '
+  printf, Unit20, 'Th above table was obtained selecting the option(s): '
+  if applytau eq 'Yes' then printf, Unit20, '* Compensation for opacity' else printf, Unit20, '* NO compensation for opacity'
+  if applygc eq 'Yes' then printf, Unit20, '* Compensation for gain curve shape' else printf, Unit20, '* NO compensation for gain curve shape'
 
   ; closing all txt output files
   close, /ALL
@@ -1231,6 +1276,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   endif
 
   free_lun, Unit2, /force
+  free_lun, Unit20, /force
 
 
   print, ' '
