@@ -23,7 +23,7 @@
 ;
 ; IDL> separa, /extlist
 ;
-; Latest update: Feb 11th, 2018
+; Latest update: Apr 04th, 2018
 
 
 pro separate, multiK=multiK, extlist=extlist
@@ -144,10 +144,10 @@ pro separate, multiK=multiK, extlist=extlist
       checkcal=where(target eq calname, isitcal)
       if isitcal ne 0 then begin
         type = 'CALIBRATORS'+sp ; overriding the default choice: the source is a calibrator
-        if subsubnum eq 1 then begin ; to handle cases when SKYDIPS have been mis-named
+        if subsubnum eq 2 then begin ; to handle cases when SKYDIPS have been mis-named
           data=mrdfits(subsublist[0],4,/SILENT)
           span=abs(data[0].el-data[-1].el)
-          if span gt 45/180*!dpi then type = 'SKYDIPS'+sp
+          if span gt 45.0/180.0*!dpi then type = 'SKYDIPS'+sp
         endif
       endif
 
