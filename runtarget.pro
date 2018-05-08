@@ -828,8 +828,8 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           if (scantype eq 1 or scantype eq 2) then tipo=0 else tipo=1
 
           ; pro targetfit, scanflag,stacflag,polyflag,section,tipo,namefile,Out3,cnt2Jy,err_cnt2Jy,datael,tau0, xx,yy,ii,ff,x_mid,Nsamples,sd_sub,gpos,decsd,rasd, fwhm, n_off, off, p, e, c, d, SNR, plo, doplot
-          targetfit, k0,'single','linear','Ch_0',tipo,subscan[j],Unit5,mylinc2j_0,err_mylinc2j_0,data[0].el,tau0L,ascissa,yy0,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Lfwhm, nL, offL, peak_cnt_0, err_cnt_0, dum3, dum4, dum5, psingle, doplot
-          targetfit, k1,'single','linear','Ch_1',tipo,subscan[j],Unit5,mylinc2j_1,err_mylinc2j_1,data[0].el,tau0R,ascissa,yy1,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Rfwhm, nR, offR, peak_cnt_1, err_cnt_1, dum3, dum4, dum5, psingle, doplot
+          targetfit, k0,'single','linear','Ch_0',tipo,list[i],subscan[j],Unit5,mylinc2j_0,err_mylinc2j_0,data[0].el,tau0L,ascissa,yy0,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Lfwhm, nL, offL, peak_cnt_0, err_cnt_0, dum3, dum4, dum5, psingle, doplot
+          targetfit, k1,'single','linear','Ch_1',tipo,list[i],subscan[j],Unit5,mylinc2j_1,err_mylinc2j_1,data[0].el,tau0R,ascissa,yy1,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Rfwhm, nR, offR, peak_cnt_1, err_cnt_1, dum3, dum4, dum5, psingle, doplot
           ; NOTA: modificata la gestione del caso /sub; ora il salvataggio del PDF avviene direttamente dentro alla procedura dataplot,
           ; che salva un file per ogni chiamata.
 

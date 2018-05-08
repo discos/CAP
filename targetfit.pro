@@ -51,11 +51,11 @@ pro getflux, peak_cnt, err_cnt, tau0, datael, cnt2Jy, err_cnt2Jy, outflux, err_o
   return
 end
 
-
+     
                                                                                                                                                         
 pro targetfit, scanflag,stacflag,polyflag,section,tipo,allpath,namefile,Out3,cnt2Jy,err_cnt2Jy,datael,tau0, xx,yy,ii,ff,x_mid,Nsamples,sd_sub,gpos,decsd,rasd, fwhm, n_off, off, p, e, c, d, SNR, plo, doplot
 
-; Main procedure, devoted to the fitting operations, both in the linear and cubic cases, for calibrators. 
+; Main procedure, devoted to the fitting operations, both in the linear and cubic cases, for targets. 
 ;
 ; Authors: Marcello Giroletti, Simona Righini
 ; Last edited: Nov 22, 2017

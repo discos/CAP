@@ -47,7 +47,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ; orders of magnitude of 10E+06..10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Nov 20, 2017
+  ; Last edited: Apr 05, 2018
   ;
 
 
@@ -87,8 +87,8 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   endif else begin
     myextlist=' '
   endelse
-  
-  if keyword_set(skipgc) then applygc='No' else applygc='Yes' 
+
+  if keyword_set(skipgc) then applygc='No' else applygc='Yes'
 
   cal_stack, freq=freq
   return
@@ -304,12 +304,29 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
   openw, Unit2, workpath+'cal_prints.txt', /GET_LUN
 
-  openw, Unit20, workpath+'gain.txt', /GET_LUN
+
+  openw, Unit19, workpath+'gain_lin.txt', /GET_LUN
+  printf, Unit19, '# Gain estimates obtained using the Tant data table inside FITS,'
+  printf, Unit19, '# in turn produced considering the pre-scan ON-OFF mark usage during Tsys measurements.'
+  printf, Unit19, '# This estimate is by default corrected for the nominal gain curve shape'
+  printf, Unit19, '# (i.e. corrected for the elevation position).'
+  printf, Unit19, '# Furthermore, if the /skypath option was chosen for the analysis and a'
+  printf, Unit19, '# correct Tau.txt file was found, these estimates are also corrected for opacity.'
+  printf, Unit19, ' '
+  printf, Unit19, '# If “apparent” gains are needed, i.e. not compensated for opacity'
+  printf, Unit19, '# and elevation, use the pipeline without the /skypath option and'
+  printf, Unit19, '# selecting the /skipgc option. This way, no opacity or gain curve'
+  printf, Unit19, '# correction will be applied.'
+  printf, Unit19, ' '
+  printf, Unit19, '     CALIBRATOR   Elevat  MJD             G_0     G_1'
+  printf, Unit19, '                     deg                 K/Jy    K/Jy'
+
+
+  openw, Unit20, workpath+'gain_cub.txt', /GET_LUN
   printf, Unit20, '# Gain estimates obtained using the Tant data table inside FITS,'
   printf, Unit20, '# in turn produced considering the pre-scan ON-OFF mark usage during Tsys measurements.'
   printf, Unit20, '# This estimate is by default corrected for the nominal gain curve shape'
-  printf, Unit20, '# the opacity measured via skydips (if applied to the reduction).'
-  printf, Unit20, '# (i.e. corrected for the elevation position).' 
+  printf, Unit20, '# (i.e. corrected for the elevation position).'
   printf, Unit20, '# Furthermore, if the /skypath option was chosen for the analysis and a'
   printf, Unit20, '# correct Tau.txt file was found, these estimates are also corrected for opacity.'
   printf, Unit20, ' '
@@ -318,8 +335,8 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   printf, Unit20, '# selecting the /skipgc option. This way, no opacity or gain curve'
   printf, Unit20, '# correction will be applied.'
   printf, Unit20, ' '
-  printf, Unit20, '     CALIBRATOR Elevat  MJD         G_0   G_1'
-  printf, Unit20, '                deg                 K/Jy  K/Jy'
+  printf, Unit20, '     CALIBRATOR   Elevat  MJD             G_0     G_1'
+  printf, Unit20, '                     deg                 K/Jy    K/Jy'
 
 
   ; reads skydip information
@@ -452,6 +469,10 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
     ; subscan-based measurements
     for j=0,subnumber-1 do begin
+      
+      k2Jy_0=-99.0  ; default value
+      k2Jy_1=-99.0  ; default value
+          
       ; READ DATA TABLE (binary data table of the MegaTable FITS file)
       data=MRDFITS(sublist[j],4,/SILENT)
       RFinfo=MRDFITS(sublist[j],2,/SILENT)
@@ -634,15 +655,18 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       endcase
 
       ; aligning the P&B estimates to the general nomenclature
-      if method eq 'P&B' then flux=intSnu
+      if method eq 'P&B' then begin
+        flux=intSnu
+        method="Perley & Butler, 2013"
+      endif
 
       if j eq 0 then begin
         ; expliciting the flux density computation result, only for the first subscan
         print, ' '
-        print, '***********'
+        print, '*********************'
         print, sourcename, 'Flux density', flux, ' Jy at', freq/1000.0, 'GHz', format='(A,1X,A,1X,D6.3,1X,A,1X,D5.2,1X,A3)'
         print, 'Estimate by', method, format='(A,1X,A)'
-        print, '***********'
+        print, '*********************'
       endif
 
       ; nominal target coordinates, converted in degrees
@@ -1086,6 +1110,8 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
     fw_tol=0.2  ; we accept measurements where FWHM is within 20% of the nominal HPBW
 
+
+    ;  **** LINEAR-BASELINE ANALYSIS ****
     if (fitchoice eq 'linear') or (fitchoice eq 'both') then begin
 
       if (offset[0] eq -99. or offset[1] eq -99. or (abs(fw_ratio0[0]-1.0) ge fw_tol and abs(fw_ratio0[1]-1.0) ge fw_tol) or (abs(fw_ratio1[0]-1.0) ge fw_tol and abs(fw_ratio1[1]-1.0) ge fw_tol)) then begin
@@ -1135,12 +1161,11 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         w1=1/(d1/c1)
         err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
         err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
+        
 
-        K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
-        K2Jy_1 = cnt2K_1/cnt2Jy_1    ; gain as obtained through the Tant data table --> Used by spectral observers only
 
-        ;         last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
-        ;         as the above offset compensation affects even them (and steers them a little bit from the dummy value)
+        ; last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
+        ; as the above offset compensation affects even them (and steers them a little bit from the dummy value)
         if (c0[0] lt 0) or (c0[1] lt 0) then begin
           cnt2Jy_0 = -99.0
           err_cnt2Jy_0 = -99.0
@@ -1151,6 +1176,20 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           err_cnt2Jy_1 = -99.0
           K2Jy_1 = -99.0
         endif
+        
+        ; dealing with the measured gains
+        if cnt2Jy_0 ne -99.00 then begin
+          K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
+        endif else begin
+          K2Jy_0 = -99.0
+        endelse
+
+        if cnt2Jy_1 ne -99.00 then begin
+          K2Jy_1 = cnt2K_1/cnt2Jy_1    ; gain as obtained through the Tant data table --> Used by spectral observers only
+        endif else begin
+          K2Jy_1 = -99.0
+        endelse
+        
       endelse
 
 
@@ -1165,11 +1204,14 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           err_cnt_0, err_cnt_1, cnt2Jy_0, cnt2Jy_1, $
           err_cnt2Jy_0, err_cnt2Jy_1;, SNR0, SNR1
       endelse
-
       ; note that SNR is not reported as it was not recalculated for the combined types
+
+      printf, Unit19, sourcename, el_d, data[0].time, K2Jy_0, K2Jy_1, format='(a15,1X,D8.4,1X,D12.5,1X,D7.3,1X,D7.3)'
+
     endif
 
 
+    ;  **** CUBIC-BASELINE ANALYSIS ****
     if (fitchoice eq 'cubic') or (fitchoice eq 'both') then begin
 
       if (offsetc[0] eq -99. or offsetc[1] eq -99. or (abs(fw_ratio0c[0]-1.0) ge fw_tol and abs(fw_ratio0c[1]-1.0) ge fw_tol) or (abs(fw_ratio1c[0]-1.0) ge fw_tol and abs(fw_ratio1c[1]-1.0) ge fw_tol)) then begin
@@ -1220,8 +1262,6 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
         err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
 
-        K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
-        K2Jy_1 = cnt2K_1/cnt2Jy_1    ; gain as obtained through the Tant data table --> Used by spectral observers only
 
         ; last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
         ; as the above offset compensation affects even them (and steers them a little bit from the dummy value)
@@ -1235,6 +1275,19 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           err_cnt2Jy_1 = -99.0
           K2Jy_1 = -99.0
         endif
+        
+        ; dealing with the measured gain values
+        if cnt2Jy_0 ne -99.00 then begin
+          K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
+        endif else begin
+          K2Jy_0 = -99.0
+        endelse
+
+        if cnt2Jy_1 ne -99.00 then begin
+          K2Jy_1 = cnt2K_1/cnt2Jy_1    ; gain as obtained through the Tant data table --> Used by spectral observers only
+        endif else begin
+          K2Jy_1 = -99.0
+        endelse
 
       endelse
 
@@ -1251,14 +1304,15 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
       endelse
       ; note that SNR is not reported as it was not recalculated for the combined types
 
+      printf, Unit20, sourcename, el_d, data[0].time, K2Jy_0, K2Jy_1, format='(a15,1X,D8.4,1X,D12.5,1X,D7.3,1X,D7.3)'
+
     endif
 
-    printf, Unit20, sourcename, el_d, data[0].time, K2Jy_0, K2Jy_1, format='(a15,D8.4,D12.5,1X,D5.3,1X,D5.3)'
 
   endfor
-  
+
   printf, Unit20, ' '
-  printf, Unit20, 'Th above table was obtained selecting the option(s): '
+  printf, Unit20, 'The above table was obtained selecting the option(s): '
   if applytau eq 'Yes' then printf, Unit20, '* Compensation for opacity' else printf, Unit20, '* NO compensation for opacity'
   if applygc eq 'Yes' then printf, Unit20, '* Compensation for gain curve shape' else printf, Unit20, '* NO compensation for gain curve shape'
 
