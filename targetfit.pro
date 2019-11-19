@@ -23,7 +23,7 @@ pro targetresiduals, X,Y,datafit,Unit2,peak,err, x_peak, rasd, decsd, tipo, SNR,
       off=(x_peak-decsd)                ; degrees
     end
     1: begin
-      meanlat=decsd   ; radians
+      meanlat=decsd/180d*!dpi   ; radians
       off=(x_peak-rasd)*cos(meanlat)    ; degrees
     end
   endcase
@@ -58,7 +58,7 @@ pro targetfit, scanflag,stacflag,polyflag,section,tipo,allpath,namefile,Out3,cnt
 ; Main procedure, devoted to the fitting operations, both in the linear and cubic cases, for targets. 
 ;
 ; Authors: Marcello Giroletti, Simona Righini
-; Last edited: Nov 22, 2017
+; Last edited: Nov 19th, 2019
 ;
 
   ; scanflag = scan buono (=1) o cattivo (=0)
