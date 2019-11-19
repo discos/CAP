@@ -22,7 +22,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ;
   ; By default, the choice is 'both'.
   ;
-  ; At present, graphic output is exceedingly slow, in particular for single subscans (if the /sub option is selected).
+  ; Plot output in PDF is exceedingly slow, in particular for single subscans (if the /sub option is selected).
   ; So it is disabled by default.
   ; To enable it, explicitly set the option:
   ;
@@ -537,6 +537,14 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           calflux, strupcase(target), freq/1000.0, intSnu, intSnu_err
           method='P&B'
         end
+        '3C123RA': begin
+          calflux, strupcase('3C123'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
+        '3C123DEC': begin
+          calflux, strupcase('3C123'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
         '3C147': begin
           calflux, strupcase(target), freq/1000.0, intSnu, intSnu_err
           method='P&B'
@@ -554,12 +562,36 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           calflux, strupcase(target), freq/1000.0, intSnu, intSnu_err
           method='P&B'
         end
+        '3C286RA': begin
+          calflux, strupcase('3C286'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
+        '3C286DEC': begin
+          calflux, strupcase('3C286'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
         '3C295': begin
           calflux, strupcase(target), freq/1000.0, intSnu, intSnu_err
           method='P&B'
         end
+        '3C295RA': begin
+          calflux, strupcase('3C295'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
+        '3C295DEC': begin
+          calflux, strupcase('3C295'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
         'NGC7027': begin
           calflux, strupcase(target), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
+        'NGC7027RA': begin
+          calflux, strupcase('NGC7027'), freq/1000.0, intSnu, intSnu_err
+          method='P&B'
+        end
+        'NGC7027DEC': begin
+          calflux, strupcase('NGC7027'), freq/1000.0, intSnu, intSnu_err
           method='P&B'
         end
         'DR21': begin
@@ -579,7 +611,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           flux=10^(a+b*alog10(freq)+c*alog10(freq)*alog10(freq))
           method='CustomSRC'
         end
-        'CAL01': begin
+        'CAL100': begin
           ; fake source for tests, having flux density=0.1 Jy
           a=-1.00
           b=0.00
@@ -587,7 +619,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           flux=10^(a+b*alog10(freq)+c*alog10(freq)*alog10(freq))
           method='CustomSRC'
         end
-        'CAL05': begin
+        'CAL0500': begin
           ; fake source for tests, having flux density=0.5 Jy
           a=-0.301030
           b=0.00
@@ -595,7 +627,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           flux=10^(a+b*alog10(freq)+c*alog10(freq)*alog10(freq))
           method='CustomSRC'
         end
-        'CAL1': begin
+        'CAL1000': begin
           ; fake source for tests, having flux density=1 Jy
           a=0.00
           b=0.00
@@ -603,7 +635,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           flux=10^(a+b*alog10(freq)+c*alog10(freq)*alog10(freq))
           method='CustomSRC'
         end
-        'CAL2': begin
+        'CAL2000': begin
           ; fake source for tests, having flux density=2 Jy
           a=0.30103
           b=0.00
@@ -611,7 +643,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           flux=10^(a+b*alog10(freq)+c*alog10(freq)*alog10(freq))
           method='CustomSRC'
         end
-        'CAL3': begin
+        'CAL3000': begin
           ; fake source for tests, having flux density=3 Jy
           a=0.4771212
           b=0.00

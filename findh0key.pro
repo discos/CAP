@@ -10,7 +10,7 @@ pro findh0key, header, stringa, key, value, info, rflag
   search=strmatch(header, stringa)
   index=where(search eq 1)
   sp=path_sep()
-  if index ne -1 and stringa eq '*Converted FITS*' then return
+  if index ne -1 and stringa eq '*Converted FITS*' then return 
   if index ne -1 and stringa eq '*Obtained from ESCS 0.1 TP FITS*' then return
   if index ne -1 then begin
     content=strsplit(header[index],'=',/extract)

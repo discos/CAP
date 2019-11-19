@@ -23,8 +23,8 @@ pro calibresiduals, X,Y,datafit,Unit2,peak,err, x_peak, rasd, decsd, tipo, SNR, 
       off=(x_peak-decsd)                ; degrees
     end
     1: begin
-      meanlat=decsd   ; radians
-      off=(x_peak-rasd)*cos(meanlat)    ; degrees
+      meanlat=decsd/180d*!dpi           ; radians
+      off=(x_peak-rasd)*cos(decsd/180d*!dpi) ; degrees
     end
   endcase
   n_off=1
@@ -65,7 +65,7 @@ pro calibfit, scanflag,stacflag,polyflag,section,tipo,allpath,namefile,Out3,flux
 ; Main procedure, devoted to the fitting operations, both in the linear and cubic cases, for targets.
 ;
 ; Authors: Marcello Giroletti, Simona Righini
-; Last edited: Oct 5, 2017
+; Last edited: Nov 19th, 2019
 ;
 
   ; scanflag = scan buono (=1) o cattivo (=0)

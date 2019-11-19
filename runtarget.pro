@@ -22,7 +22,7 @@ pro runtarget, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic
   ;
   ; By default, the choice is 'both'.
   ;
-  ; At present, graphic output is exceedingly slow, in particular for single subscans (if the /sub option is selected).
+  ; Plot output in PDF is exceedingly slow, in particular for single subscans (if the /sub option is selected).
   ; So it is disabled by default.
   ; To enable it, explicitly set the option:
   ;

@@ -141,7 +141,7 @@ pro separate, multiK=multiK, extlist=extlist
       ; directing the file to the proper location
       type='TARGETS'+sp   ; default choice
 
-      checkcal=where(target eq calname, isitcal)
+      checkcal=where(strupcase(target) eq calname, isitcal)
       if isitcal ne 0 then begin
         type = 'CALIBRATORS'+sp ; overriding the default choice: the source is a calibrator
         if subsubnum eq 2 then begin ; to handle cases when SKYDIPS have been mis-named
