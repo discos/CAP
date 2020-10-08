@@ -23,7 +23,7 @@
 ;
 ; IDL> separa, /extlist
 ;
-; Latest update: Apr 04th, 2018
+; Latest update: July 6th, 2020
 
 
 pro separate, multiK=multiK, extlist=extlist
@@ -202,7 +202,7 @@ pro separate, multiK=multiK, extlist=extlist
   print, '   DONE    '
   print, '**********'
   print, ' '
-  
+
   return
 
 end

@@ -47,7 +47,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ; orders of magnitude of 10E+06..10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Apr 05, 2018
+  ; Last edited: July 28, 2020 by Simona
   ;
 
 
@@ -155,16 +155,36 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   RFinfo=MRDFITS(sublist[0],2,/SILENT)
   Sectinfo=MRDFITS(sublist[0],1,/SILENT)
 
-  Tant=MRDFITS(sublist[0],5,/SILENT)
-  cnt2K_0=Tant[0].ch0/data[0].ch0    ; K/cnt ricavato da uso della marca pre-scan
-  cnt2K_1=Tant[0].ch1/data[0].ch1    ; K/cnt ricavato da uso della marca pre-scan
   gaintime=data[0].time              ; associated MJD (first sample of first subscan)
+  firstscandate=strsplit(sublist[0],'-',/extract)
+  
+  datesplit=strsplit(firstscandate[0],path_sep(),/extract)
+  yyyymmdd=datesplit[-1]
 
   ; read frequency and bandwidth from RF table
   bw=RFinfo[0].bandWidth
 
   freq=RFinfo[0].frequency+bw/2.0
   dt=1.0/(Sectinfo[0].sampleRate*1e6)
+
+  if double(yyyymmdd) le double(20110301) then begin
+    cnt2K_0=-99.0   ; dummy
+    cnt2K_1=-99.0   ; dummy
+    ksectchoice='mf' ; K-band receiver in MED was multi-feed
+  endif else begin
+    if (double(yyyymmdd) gt double(20110301)) and (double(yyyymmdd) lt double(20120101)) and (freq ge 18000.0) then begin
+      Tant=MRDFITS(sublist[0],5,/SILENT)
+      cnt2K_0=Tant[0].ch10/data[0].ch10   ; K/cnt ricavato da uso della marca pre-scan
+      cnt2K_1=Tant[0].ch11/data[0].ch11   ; K/cnt ricavato da uso della marca pre-scan
+      ksectchoice='mf' ; K-band receiver in MED was multi-feed
+    endif else begin
+      Tant=MRDFITS(sublist[0],5,/SILENT)
+      cnt2K_0=Tant[0].ch0/data[0].ch0    ; K/cnt ricavato da uso della marca pre-scan
+      cnt2K_1=Tant[0].ch1/data[0].ch1    ; K/cnt ricavato da uso della marca pre-scan
+      ksectchoice='df' ; K-band receiver in MED was dual-feed
+    endelse
+  endelse
+
 
   ; which telescope was used? Let's get to a 3-char code to be used afterwards
   firstmainh=mrdfits(sublist[0],0,firsthead0,/silent)
@@ -193,14 +213,28 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         ; A_1=[6.1059261E-01,1.0623634E-02,-7.2457279E-05,0]  ; origin???
       endif
       if (freq gt 18000 and freq le 18500) then begin
-        ; this is K-low band
-        A_0=[0.8373589,0.005140111,-4.058370E-5,0] ; as of Sept.30, 2015
-        A_1=[0.8373589,0.005140111,-4.058370E-5,0] ; as of Sept.30, 2015
+        if gaintime gt 55926.0 then begin
+          ; this is K-low band
+          A_0=[0.8373589,0.005140111,-4.058370E-5,0] ; as of Sept.30, 2015
+          A_1=[0.8373589,0.005140111,-4.058370E-5,0] ; as of Sept.30, 2015
+        endif else begin
+          ; multi-feed gain curve for feed0
+          A_0=[0.59778067,0.013571075,-0.00011447367,0]
+          A_1=[0.59778067,0.013571075,-0.00011447367,0]
+          print, 'BEWARE: Using gain curve for multi-feed K-band receiver'
+        endelse
       endif
       if (freq gt 18500 and freq le 26500) then begin
         ; this is K-high band
-        A_0=[0.7929185,0.005900533,-4.203179E-5,0] ; as of Sept.30, 2015
-        A_1=[0.7929185,0.005900533,-4.203179E-5,0] ; as of Sept.30, 2015
+        if gaintime gt 55926.0 then begin
+          A_0=[0.7929185,0.005900533,-4.203179E-5,0] ; as of Sept.30, 2015
+          A_1=[0.7929185,0.005900533,-4.203179E-5,0] ; as of Sept.30, 2015
+        endif else begin
+          ; multi-feed gain curve for feed0
+          A_0=[0.59778067,0.013571075,-0.00011447367,0]
+          A_1=[0.59778067,0.013571075,-0.00011447367,0]
+          print, 'BEWARE: Using gain curve for multi-feed K-band receiver'
+        endelse
       endif
     end
     'SRT': begin
@@ -353,7 +387,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   endif else begin
     print, ' '
     print, '+++++++++++++++++++++++++++++++++++++++++++++'
-    print, 'Beware: no Tau.txt available, assuming tau0=0
+    print, 'Beware: no Tau.txt available, assuming tau0=0'
     print, '+++++++++++++++++++++++++++++++++++++++++++++'
     applytau = 'No'
     wait, 0.5
@@ -469,10 +503,10 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
     ; subscan-based measurements
     for j=0,subnumber-1 do begin
-      
+
       k2Jy_0=-99.0  ; default value
       k2Jy_1=-99.0  ; default value
-          
+
       ; READ DATA TABLE (binary data table of the MegaTable FITS file)
       data=MRDFITS(sublist[j],4,/SILENT)
       RFinfo=MRDFITS(sublist[j],2,/SILENT)
@@ -779,9 +813,14 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         ;        data=reverse(data)
         data.raj2000=reverse(data.raj2000)
         data.decj2000=reverse(data.decj2000)
-        data.ch0=reverse(data.ch0) ; original line
-        ; data.ch0=reverse(data.ch2) ; ABC
-        data.ch1=reverse(data.ch1)
+
+        if freq ge 18000 and site eq 'MED' and ksectchoice eq 'mf' then begin
+          data.ch10=reverse(data.ch10) ; original line
+          data.ch11=reverse(data.ch11)
+        endif else begin
+          data.ch0=reverse(data.ch0) ; original line
+          data.ch1=reverse(data.ch1)
+        endelse
       endif
 
       ; computing the sample offset with respect to the source position
@@ -901,17 +940,26 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
       ; actually sums counts only for scans flagged as good and sets inputs for single scan fit
       if ( scantype eq 1 or scantype eq 2) then begin
-        ; if (k0 ne 0) then sommaLA = sommaLA + k0*data.ch2/g_0  ; ABC
-        if (k0 ne 0) then sommaLA = sommaLA + k0*data.ch0/g_0 ; original line
-        if (k1 ne 0) then sommaRA = sommaRA + k1*data.ch1/g_1
+
+        if freq ge 18000 and site eq 'MED' and ksectchoice eq 'mf' then begin
+          if (k0 ne 0) then sommaLA = sommaLA + k0*data.ch10/g_0 ; original line
+          if (k1 ne 0) then sommaRA = sommaRA + k1*data.ch11/g_1
+        endif else begin
+          if (k0 ne 0) then sommaLA = sommaLA + k0*data.ch0/g_0 ; original line
+          if (k1 ne 0) then sommaRA = sommaRA + k1*data.ch1/g_1
+        endelse
         numLA = numLA + k0*1
         numRA = numRA + k1*1
         ascissa=(data.decj2000-hDECoff)*180d/!dpi
         gpos=decsd
       endif else begin
-        ; if (k0 ne 0) then sommaLB = sommaLB + k0*data.ch2/g_0 ; ABC
-        if (k0 ne 0) then sommaLB = sommaLB + k0*data.ch0/g_0 ; original line
-        if (k1 ne 0) then sommaRB = sommaRB + k1*data.ch1/g_1
+        if freq ge 18000 and site eq 'MED' and ksectchoice eq 'mf' then begin
+          if (k0 ne 0) then sommaLB = sommaLB + k0*data.ch10/g_0 ; original line
+          if (k1 ne 0) then sommaRB = sommaRB + k1*data.ch11/g_1
+        endif else begin
+          if (k0 ne 0) then sommaLB = sommaLB + k0*data.ch0/g_0 ; original line
+          if (k1 ne 0) then sommaRB = sommaRB + k1*data.ch1/g_1
+        endelse
         numLB = numLB + k0*1
         numRB = numRB + k1*1
         ascissa=(data.raj2000-hRAoff/cos(mean(data.decj2000)))*180d/!dpi
@@ -925,9 +973,13 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           ; fit single subscans with linear + gaussian
           Lfwhm=0
           Rfwhm=0
-          ; yy0=data.ch2/g_0 ; ABC
-          yy0=data.ch0/g_0  ; original line
-          yy1=data.ch1/g_1
+          if freq ge 18000 and site eq 'MED' and ksectchoice eq 'mf' then begin
+            yy0=data.ch10/g_0  ; original line
+            yy1=data.ch11/g_1
+          endif else begin
+            yy0=data.ch0/g_0  ; original line
+            yy1=data.ch1/g_1
+          endelse
           if (scantype eq 1 or scantype eq 2) then tipo=0 else tipo=1
           calibfit, k0,'single','linear','Ch_0',tipo,list[i],subscan[j],Unit5,flux,data[0].el,tau0L,ascissa,yy0,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Lfwhm, nL, offL, peak_cnt_0, err_cnt_0, dum3, dum4, dum5, psingle, doplot
           calibfit, k1,'single','linear','Ch_1',tipo,list[i],subscan[j],Unit5,flux,data[0].el,tau0R,ascissa,yy1,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Rfwhm, nR, offR, peak_cnt_1, err_cnt_1, dum3, dum4, dum5, psingle, doplot
@@ -953,9 +1005,13 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           ; fit single subscans with cubic + gaussian
           Lfwhm=0
           Rfwhm=0
-          ; yy0=data.ch2/g_0 ;ABC
-          yy0=data.ch0/g_0  ; original line
-          yy1=data.ch1/g_1
+          if freq ge 18000 and site eq 'MED' and ksectchoice eq 'mf' then begin
+            yy0=data.ch10/g_0  ; original line
+            yy1=data.ch11/g_1
+          endif else begin
+            yy0=data.ch0/g_0  ; original line
+            yy1=data.ch1/g_1
+          endelse
           if (scantype eq 1 or scantype eq 2) then tipo=0 else tipo=1
           calibfit, k0,'single','cubic','Ch_0',tipo,list[i],subscan[j],Unit5,flux,data[0].el,tau0L,ascissa,yy0,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Lfwhm, nL, offL, peak_cnt_0, err_cnt_0, dum3, dum4, dum5, psingle, doplot
           calibfit, k1,'single','cubic','Ch_1',tipo,list[i],subscan[j],Unit5,flux,data[0].el,tau0R,ascissa,yy1,0,ndat[1]-1,midscan,Nsamples,sd*(1.+tipo*(1./cos(decs)-1.)),gpos,decsd,rasd, Rfwhm, nR, offR, peak_cnt_1, err_cnt_1, dum3, dum4, dum5, psingle, doplot
@@ -1127,10 +1183,10 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         if TPlike eq 2 then begin
           printf, Unit11, FORMAT = '(a15,a7,D12.5,d8.1,13(" ",D8.4),A7)', sourcename, hhmmss, data[0].time, freq, $
-            el_d, p0c[tipo],p1c[tipo],e0c[tipo],e1c[tipo],c0c[tipo],c1c[tipo],d0c[tipo],d1c[tipo],SNR0c[tipo], SNR1c[tipo], offsetc[tipo], Lfwhm/beam, sclab
+            el_d,p0c[tipo],p1c[tipo],e0c[tipo],e1c[tipo],c0c[tipo],c1c[tipo],d0c[tipo],d1c[tipo],SNR0c[tipo],SNR1c[tipo],offsetc[tipo],Lfwhm/beam,sclab
         endif else begin
           printf, Unit11, FORMAT = '(a15,a7,D12.5,d8.1,d8.4,8(" ",E12.6),4(" ",D8.4),A7)', sourcename, hhmmss, data[0].time, freq, $
-            el_d, p0c[tipo],p1c[tipo],e0c[tipo],e1c[tipo],c0c[tipo],c1c[tipo],d0c[tipo],d1c[tipo],SNR0c[tipo], SNR1c[tipo], offsetc[tipo], Lfwhm/beam, sclab
+            el_d,p0c[tipo],p1c[tipo],e0c[tipo],e1c[tipo],c0c[tipo],c1c[tipo],d0c[tipo],d1c[tipo],SNR0c[tipo],SNR1c[tipo],offsetc[tipo],Lfwhm/beam,sclab
         endelse
       endif
     endfor
@@ -1193,7 +1249,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         w1=1/(d1/c1)
         err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
         err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
-        
+
 
 
         ; last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
@@ -1208,7 +1264,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           err_cnt2Jy_1 = -99.0
           K2Jy_1 = -99.0
         endif
-        
+
         ; dealing with the measured gains
         if cnt2Jy_0 ne -99.00 then begin
           K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only
@@ -1221,7 +1277,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         endif else begin
           K2Jy_1 = -99.0
         endelse
-        
+
       endelse
 
 
@@ -1307,7 +1363,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           err_cnt2Jy_1 = -99.0
           K2Jy_1 = -99.0
         endif
-        
+
         ; dealing with the measured gain values
         if cnt2Jy_0 ne -99.00 then begin
           K2Jy_0 = cnt2K_0/cnt2Jy_0    ; gain as obtained through the Tant data table --> Used by spectral observers only

@@ -5,31 +5,35 @@
 ;     12 feb 2013 - fixed problem on Logical Units, by adding free_lun
 ;     28 feb 2013 - insertion of "BACK" and "SKIP" buttons
 ; New releases:
-;     27 apr 2016 - the working folder is now the "parent"one, containing all the subfolders 
-;                   where the FITS files are stored. Users can now flag data easily passing 
+;     27 apr 2016 - the working folder is now the "parent" one, containing all the subfolders
+;                   where the FITS files are stored. Users can now flag data easily passing
 ;                   from one subfolder to the following/precedent one
+;     07 jul 2020 - now handling the case of olf K-band files, where the feed0 data was stored
+;                   in sections CH10 and CH11 instead of CH0 and CH1
 
 ; USAGE:
-; 1) Compile and run dataflagging.pro; 
+; 1) Compile and run dataflagging.pro;
 ; 2) (optional) select the user name's initials from the upper drop-down menu;
-; 3) click on BROWSE button and select the parent folder containing the FITS-full folders; 
+; 3) click on BROWSE button and select the parent folder containing the FITS-full folders;
 ; 4) click on GO!;
-; 5) if a checkfile (i.e. the list of flagged files) already exists for a FITS folder, 
-;    a dialog box will appear. By answering "YES", users indicate they want to keep those 
-;    flags and go on appending new ones for the so-far-unflagged data (if any). 
-;    By answering "NO", they decide to start over, thus rewriting the checkfile; 
-; 6) A new window will appear, where the content of each FITS file will be displayed. 
-;    The two plots show: 
+; 5) if a checkfile (i.e. the list of flagged files) already exists for a FITS folder,
+;    a dialog box will appear. By answering "YES", users indicate they want to keep those
+;    flags and go on appending new ones for the so-far-unflagged data (if any).
+;    By answering "NO", they decide to start over, thus rewriting the checkfile;
+; 6) A new window will appear, where the content of each FITS file will be displayed.
+;    The two plots show:
 ;      left --> Section CH0
-;      right --> Section CH1  
+;      right --> Section CH1
 ;    Users are asked to express their opinion on the sections to be KEPT (i.e. sent
-;    to the following phases of the data reduction) by clicking on NONE, LEFT, RIGHT, BOTH. 
-;    The button "BOTH (V. good)" can be ignored, or used to pinpoint the particularly 
+;    to the following phases of the data reduction) by clicking on NONE, LEFT, RIGHT, BOTH.
+;    The button "BOTH (V. good)" can be ignored, or used to pinpoint the particularly
 ;    good acquisitions (for future uses, such as the implementation of AI tools);
 ; 7) the "Skip" button skips the FITS presently displayed, leaving it unflagged (beware: CAP will by defaut consider it good!);
 ; 8) using the "Back" button, the previous FITS is re-displayed and re-flagged (the old flag is overwritten).
 ;    It is not possible to invoke "Back" after a "Skip" (for this reason the button is disabled);
 ; 9) to interrupt the procedure, yet saving all the previously-performed flagging, click on "STOP and EXIT".
+
+; Last edited: July 6th, 2020 by Simona
 
 
 pro WID_BASE_0, GROUP_LEADER=wGroup, _EXTRA=_VWBExtra_
@@ -380,21 +384,38 @@ pro plot_ch
   numb=n_elements(list)
   ; load FITS file
   data=MRDFITS(list[tobeflagged[index]],4,/silent)
+  RFinfo=MRDFITS(list[tobeflagged[index]],2,/SILENT)
   ; extract the filename from full path
   segments=strsplit(list[tobeflagged[index]],sp,/extract)
   segcount=n_elements(segments)
   filename=segments[segcount-1]
+  filedatesplit=strsplit(filename,'-',/extract)
+  filedate=filedatesplit[0]
   ; count the data samples and generate x-axis
   nsample=n_elements(data.time)
   xaxis=indgen(nsample)
-  ; ch0 plot
+  ; read frequency and bandwidth from RF table
+  bw=RFinfo[0].bandWidth
+  freq=RFinfo[0].frequency+bw/2.0
+
   wset, wid_left_id
-  plot, xaxis[10:nsample-10], data[10:nsample-10].ch0, $
-    ys=1, background=255, color=0, title=filename
-  ; ch1 plot
-  wset, wid_right_id
-  plot, xaxis[10:nsample-10], data[10:nsample-10].ch1, $
-    ys=1, background=255, color=0, title='Dir'+strcompress(string(dirindex+1))+' out of'+strcompress(n_elements(dirlist))+'  -  FITS'+strcompress(string(tobeflagged[index]+1))+' out of'+strcompress(string(numb))
+  if (double(filedate) lt double(20120101)) and (freq ge 18000) then begin
+    ; ch10 plot
+    plot, xaxis[10:nsample-10], data[10:nsample-10].ch10, $
+      ys=1, background=255, color=0, title=filename
+    ; ch11 plot
+    wset, wid_right_id
+    plot, xaxis[10:nsample-10], data[10:nsample-10].ch11, $
+      ys=1, background=255, color=0, title='Dir'+strcompress(string(dirindex+1))+' out of'+strcompress(n_elements(dirlist))+'  -  FITS'+strcompress(string(tobeflagged[index]+1))+' out of'+strcompress(string(numb))
+  endif else begin
+    ; ch0 plot
+    plot, xaxis[10:nsample-10], data[10:nsample-10].ch0, $
+      ys=1, background=255, color=0, title=filename
+    ; ch1 plot
+    wset, wid_right_id
+    plot, xaxis[10:nsample-10], data[10:nsample-10].ch1, $
+      ys=1, background=255, color=0, title='Dir'+strcompress(string(dirindex+1))+' out of'+strcompress(n_elements(dirlist))+'  -  FITS'+strcompress(string(tobeflagged[index]+1))+' out of'+strcompress(string(numb))
+  endelse
 end
 
 

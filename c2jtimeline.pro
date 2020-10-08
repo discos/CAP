@@ -52,6 +52,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
   outfiles=strarr(2)
   outplot=strarr(2)
   infiles[0]='cal_stack_lin_final.txt'
+  ; infiles[0]='cal_stack_cub_final.txt' ; temporary substitution for 2010-2012 ra-only data
   infiles[1]='cal_stack_cub_final.txt'
   outfiles[0]='cnt2jy_exlin.txt'
   outfiles[1]='cnt2jy_excub.txt'
