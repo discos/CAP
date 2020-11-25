@@ -47,7 +47,7 @@ pro runcalib, pickpath=pickpath, skypath=skypath, sub=sub, linear=linear, cubic=
   ; orders of magnitude of 10E+06..10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: July 28, 2020 by Simona
+  ; Last edited: November 24, 2020 by Simona
   ;
 
 
@@ -156,7 +156,8 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   Sectinfo=MRDFITS(sublist[0],1,/SILENT)
 
   gaintime=data[0].time              ; associated MJD (first sample of first subscan)
-  firstscandate=strsplit(sublist[0],'-',/extract)
+  firstscanname=strsplit(sublist[0],sep,/extract)
+  firstscandate=strsplit(firstscanname[-1],'-',/extract)
   
   datesplit=strsplit(firstscandate[0],path_sep(),/extract)
   yyyymmdd=datesplit[-1]
