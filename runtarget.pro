@@ -533,8 +533,10 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           ; assigning the identified best-matching cnt2Jy values to the final attributes, for the subsequent analysis
           mylinc2j_0=linc2j_0[my_lin_interval]+mymjd*linm_0[my_lin_interval]
           mylinc2j_1=linc2j_1[my_lin_interval]+mymjd*linm_1[my_lin_interval]
-          err_mylinc2j_0=mylinc2j_0*sqrt(err_linc2j_0[my_lin_interval]^2+mymjd*err_linm_0[my_lin_interval]^2)
-          err_mylinc2j_1=mylinc2j_1*sqrt(err_linc2j_1[my_lin_interval]^2+mymjd*err_linm_1[my_lin_interval]^2)
+;          err_mylinc2j_0=mylinc2j_0*sqrt(err_linc2j_0[my_lin_interval]^2+mymjd*err_linm_0[my_lin_interval]^2) ; originale errato
+;          err_mylinc2j_1=mylinc2j_1*sqrt(err_linc2j_1[my_lin_interval]^2+mymjd*err_linm_1[my_lin_interval]^2)
+          err_mylinc2j_0=sqrt(err_linc2j_0[my_lin_interval]^2+mymjd*err_linm_0[my_lin_interval]^2)
+          err_mylinc2j_1=sqrt(err_linc2j_1[my_lin_interval]^2+mymjd*err_linm_1[my_lin_interval]^2)
         endelse
       endif
 
@@ -575,8 +577,15 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
           ; assigning the identified best-matching cnt2Jy values to the final attributes, for the subsequent analysis
           mycubc2j_0=cubc2j_0[my_cub_interval]+mymjd*cubm_0[my_cub_interval]
           mycubc2j_1=cubc2j_1[my_cub_interval]+mymjd*cubm_1[my_cub_interval]
-          err_mycubc2j_0=mycubc2j_0*sqrt(err_cubc2j_0[my_cub_interval]^2+mymjd*err_cubm_0[my_cub_interval]^2)
-          err_mycubc2j_1=mycubc2j_1*sqrt(err_cubc2j_1[my_cub_interval]^2+mymjd*err_cubm_1[my_cub_interval]^2)
+;          err_mycubc2j_0=mycubc2j_0*sqrt(err_cubc2j_0[my_cub_interval]^2+mymjd*err_cubm_0[my_cub_interval]^2)  ; originale errato
+;          err_mycubc2j_1=mycubc2j_1*sqrt(err_cubc2j_1[my_cub_interval]^2+mymjd*err_cubm_1[my_cub_interval]^2)
+          err_mycubc2j_0=sqrt(err_cubc2j_0[my_cub_interval]^2+mymjd*err_cubm_0[my_cub_interval]^2)
+          err_mycubc2j_1=sqrt(err_cubc2j_1[my_cub_interval]^2+mymjd*err_cubm_1[my_cub_interval]^2)
+          ; check per la revisione del sistema di calcolo/utilizzo dei cnt2Jy
+          ;  print, 'c2j0 medio - c2j1 medio - err orig0 - err orig1  - err c2j0 medio - err c2j1 medio
+          ;  print, mycubc2j_0, mycubc2j_1, err_cubc2j_0[my_cub_interval], err_cubc2j_1[my_cub_interval], err_mycubc2j_0, err_mycubc2j_1, format='(D6.4,1X,D6.4,1X,D6.4,1X,D6.4,1X,D6.4,1X,D6.4)'
+          ;  print, ' '
+          ; stop
         endelse
       endif
 
@@ -1122,10 +1131,13 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         peak_cnt_0 = tar_wmean(p0, e0, /nan)
         peak_cnt_1 = tar_wmean(p1, e1, /nan)
-        w0=1/(e0/p0)
-        w1=1/(e1/p1)
-        err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
-        err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
+        w0=1.0/(e0/p0)
+        w1=1.0/(e1/p1)
+        ; err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
+        ; err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
+        err_cnt_0 = 1.0/sqrt((1.0/e0[0])^2+(1.0/e0[1])^2)   ; aggiornati 29/11/2021
+        err_cnt_1 = 1.0/sqrt((1.0/e1[0])^2+(1.0/e1[1])^2)
+
         ;  err_cnt_0 = stddev(p0, /nan)
         ;  err_cnt_1 = stddev(p1, /nan)
 
@@ -1143,10 +1155,13 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
         ; XXX
         fluxdensity_0 = tar_wmean(c0, d0, /nan)
         fluxdensity_1 = tar_wmean(c1, d1, /nan)
-        w0=1/(d0/c0)
-        w1=1/(d1/c1)
-        err_fluxdensity_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
-        err_fluxdensity_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
+        w0=1.0/(d0/c0)
+        w1=1.0/(d1/c1)
+       ; err_fluxdensity_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1]) 
+       ; err_fluxdensity_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1]) 
+        err_fluxdensity_0 = 1.0/sqrt((1.0/d0[0])^2+(1.0/d0[1])^2)   ; aggiornati 29/11/2021
+        err_fluxdensity_1 = 1.0/sqrt((1.0/d1[0])^2+(1.0/d1[1])^2)
+
 
         ; last check: when calibrators are not known, the resulting dummy flux values are to be reset to -99.00
         ; as the above offset compensation affects even them (and steers them a little bit from the dummy value)
@@ -1207,10 +1222,13 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         peak_cnt_0 = tar_wmean(p0c, e0c, /nan)
         peak_cnt_1 = tar_wmean(p1c, e1c, /nan)
-        w0=1/(e0c/p0c)
-        w1=1/(e1c/p1c)
-        err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
-        err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
+        w0=1.0/(e0c/p0c)
+        w1=1.0/(e1c/p1c)
+      ;  err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
+      ;  err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
+        err_cnt_0 = 1.0/sqrt((1.0/e0c[0])^2+(1.0/e0c[1])^2)   ; aggiornati 29/11/2021
+        err_cnt_1 = 1.0/sqrt((1.0/e1c[0])^2+(1.0/e1c[1])^2)
+
         ;  err_cnt_0 = stddev(p0, /nan)
         ;  err_cnt_1 = stddev(p1, /nan)
 
@@ -1227,10 +1245,13 @@ pro tar_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         fluxdensity_0 = tar_wmean(c0c, d0c, /nan)
         fluxdensity_1 = tar_wmean(c1c, d1c, /nan)
-        w0=1/(d0/c0)
-        w1=1/(d1/c1)
-        err_fluxdensity_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
-        err_fluxdensity_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
+        w0=1.0/(d0c/c0c)
+        w1=1.0/(d1c/c1c)
+       ; err_fluxdensity_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
+       ; err_fluxdensity_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
+        err_fluxdensity_0 = 1.0/sqrt((1.0/d0c[0])^2+(1.0/d0c[1])^2)   ; aggiornati 29/11/2021
+        err_fluxdensity_1 = 1.0/sqrt((1.0/d1c[0])^2+(1.0/d1c[1])^2)
+
 
         ; last check: when calibrators are not known, the resulting dummy flux values are to be reset to -99.00
         ; as the above offset compensation affects even them (and steers them a little bit from the dummy value)

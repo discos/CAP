@@ -122,6 +122,7 @@ pro calibfit, scanflag,stacflag,polyflag,section,tipo,allpath,namefile,Out3,flux
       rescut=[residual[0:resrange],residual[-1*resrange,-1]]   ; avoiding the central part of the subscan, where artifacts can be present due to sidelobes
       resstat=moment(rescut)
       res_rms=sqrt(resstat[1])
+     ; err_cnt=sqrt(err_cnt^2+res_rms^2)   ; XXX temporaneo 
       err_cnt=sqrt(err_cnt^2+res_rms^2+(0.03*peak_cnt)^2)  ; updated error for the amplitude measurement, including a default 3% uncertainty on calibrator flux-amplitude
       
       getcnt2Jy, flux, peak_cnt, err_cnt, tau0, datael, cnt2Jy, err_cnt2Jy, Out3, Level
@@ -157,6 +158,7 @@ pro calibfit, scanflag,stacflag,polyflag,section,tipo,allpath,namefile,Out3,flux
       rescut_b=[residual[0:resrange],residual[-1*resrange,-1]]   ; avoiding the central part of the subscan, where artifacts can be present due to sidelobes
       resstat=moment(rescut_b)
       res_rms=sqrt(resstat[1])
+     ; err_cnt=sqrt(err_cnt^2+res_rms^2)  ; XXX eliminazione temporanea 3% sull'errore del calibratore
       err_cnt=sqrt(err_cnt^2+res_rms^2+(0.03*peak_cnt)^2)  ; updated error for the amplitude measurement
       
       getcnt2Jy, flux, peak_cnt, err_cnt, tau0, datael, cnt2Jy, err_cnt2Jy, Out3, Level

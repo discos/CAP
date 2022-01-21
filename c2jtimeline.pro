@@ -14,7 +14,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
   ;
   ; IDL> c2jtimeline, /pickpath
   ;
-  ; c2jtimeline'2 detailed results are plotted into .ps files, one devoted to the EXLIN results, one to the EXCUB results.
+  ; c2jtimeline's detailed results are plotted into .ps and jpg files, one devoted to the EXLIN results, one to the EXCUB results.
   ; On screen, by default only the whole dataset/timeline is shown. To also display on screen the detailed plots,
   ; each showing the cnt2Jy trends inside a single time interval, use:
   ;
@@ -25,7 +25,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
   ; orders of magnitude of 10E+06, 10E+07, producing properly-formatted output tables.
   ;
   ; Authors: Marcello Giroletti, Simona Righini
-  ; Last edited: Nov 3, 2017
+  ; Last edited: Jan 20, 2022
   ;
 
   sep=path_sep()
@@ -117,8 +117,17 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
 
     if f eq 0 then origin='EXLIN' else origin='EXCUB'
     
-    real0=where(cnt2Jy_0_el ne -99)
-    real1=where(cnt2Jy_1_el ne -99)
+    real0=where(cnt2Jy_0_el gt 0)
+    real1=where(cnt2Jy_1_el gt 0)
+    nreal0=n_elements(real0)
+    nreal1=n_elements(real1)
+    c2j0stats=moment(cnt2Jy_0_el[real0])
+    c2j1stats=moment(cnt2Jy_1_el[real1])
+    c2j0av=c2j0stats[0]
+    c2j1av=c2j1stats[0]
+    c2j0stdev=sqrt(c2j0stats[1])
+    c2j1stdev=sqrt(c2j1stats[1])
+    
     wholeplot=errorplot(el_d[real0], cnt2Jy_0_el[real0], el_d[real0]*0, err_cnt2Jy_0_el[real0], name='CH0')
     wholeplot.title='All cnt2Jy measurements - '+origin
     wholeplot.xtitle='Elevation (deg)'
@@ -135,8 +144,29 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
     wholeplot2.symbol='triangle'
     wholeplot2.sym_filled=1
     wholeplot2.sym_size=1.0
+    wholeplot3=plot([min(el_d[real0]),max(el_d[real0])], [c2j0av,c2j0av],/overplot, name='Aver0')
+    wholeplot3.linestyle='-'
+    wholeplot3.color='midnight blue'
+    wholeplot4=plot([min(el_d[real1]),max(el_d[real1])], [c2j1av,c2j1av],/overplot, name='Aver1')
+    wholeplot4.linestyle='-'
+    wholeplot4.color='deep sky blue'
+    wholeplot5=plot([min(el_d[real0]),max(el_d[real0])], [c2j0av+c2j0stdev,c2j0av+c2j0stdev],/overplot, name='StDev0')
+    wholeplot5.linestyle='dash_dot'
+    wholeplot5.color='midnight blue'
+    wholeplot6=plot([min(el_d[real0]),max(el_d[real0])], [c2j0av-c2j0stdev,c2j0av-c2j0stdev],/overplot)
+    wholeplot6.linestyle='dash_dot'
+    wholeplot6.color='midnight blue'
+    wholeplot7=plot([min(el_d[real1]),max(el_d[real1])], [c2j1av+c2j1stdev,c2j1av+c2j1stdev],/overplot, name='StDev1')
+    wholeplot7.linestyle='dash_dot'
+    wholeplot7.color='deep sky blue'
+    wholeplot8=plot([min(el_d[real1]),max(el_d[real1])], [c2j1av-c2j1stdev,c2j1av-c2j1stdev],/overplot)
+    wholeplot8.linestyle='dash_dot'
+    wholeplot8.color='deep sky blue'
+    
 
     leg = legend(TARGET=[wholeplot, wholeplot2], POSITION=[0.9,0.9], /AUTO_TEXT_COLOR)
+    
+    wholeplot.save, workpath+'timeline_'+origin+'.jpg'
 
 
     ; overall plot of full dataset
@@ -259,7 +289,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
           ;          print, ' '
           ;          stop
 
-          realc2j0=where(c2J0plot ne -99)
+          realc2j0=where(c2J0plot gt 0)
           ystep=(max(c2J0plot[realc2j0]+errc2J0plot[realc2j0])-min(c2J0plot[realc2j0]-errc2J0plot[realc2j0]))/10.0
           labstep=ystep
           if ystep eq 0 then begin
@@ -293,8 +323,8 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
               displot.title=origin+' cnt2Jy_0 vs Time, INT'+strcompress(string(j),/remove_all)
               displot.xtitle='Elapsed time (hh.h)'
               displot.ytitle='Jy/cnt'
-              displot.xrange=[min(th0plot)-xstep,max(th0plot)+xstep]
-              displot.yrange=[min(c2J0plot[realc2j0])-ystep,max(th0plot[realc2j0])+ystep]
+           ;   displot.xrange=[min(th0plot)-xstep,max(th0plot)+xstep]
+           ;   displot.yrange=[min(c2J0plot[realc2j0])-ystep,max(th0plot[realc2j0])+ystep]
             endif
           endif
 
@@ -392,7 +422,7 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
           y_1min=Ch_1[0]+(Ch_1[1])*th_1val+Ch_sig1[0]
           y_1max=Ch_1[0]+(Ch_1[1])*th_1val-Ch_sig1[0]
 
-          realc2j1=where(c2J1plot ne -99)
+          realc2j1=where(c2J1plot gt 0)
           ystep=(max(c2J1plot[realc2j1]+errc2J1plot[realc2j1])-min(c2J1plot[realc2j1]-errc2J1plot[realc2j1]))/10.0
           labstep=ystep
           if ystep eq 0 then begin
@@ -426,8 +456,8 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
               displot6.title=origin+' cnt2Jy_1 vs Time, INT'+strcompress(string(j),/remove_all)
               displot6.xtitle='Elapsed time (hh.h)'
               displot6.ytitle='Jy/cnt'
-              displot6.xrange=[min(th1plot)-xstep,max(th1plot)+xstep]
-              displot6.yrange=[min(c2J1plot[realc2j1])-ystep,max(th1plot[realc2j1])+ystep]
+            ;  displot6.xrange=[min(th1plot)-xstep,max(th1plot)+xstep]
+            ;  displot6.yrange=[min(c2J1plot[realc2j1])-ystep,max(th1plot[realc2j1])+ystep]
             endif
           endif
 
@@ -482,6 +512,8 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
         case mode of
           'aver': begin
             printf, Unit, FORMAT = '(i4," ",d8.1,2(d11.4),8(g13.7))',j+1,freq[0],ti,tf,0,x_0mean,0,sigma_0m,0,x_1mean,0,sigma_1m
+            print, x_0mean, sigma_0m, sigma_0d
+            print, x_1mean, sigma_1m, sigma_1d
           end
           'linf': begin
             printf, Unit, FORMAT = '(i4," ",d8.1,2(d11.4),8(g13.7))',j+1,freq[0],ti,tf,C_0[1],C_0[0],C_sig0[1],C_sig0[0],C_1[1],C_1[0],C_sig1[1],C_sig1[0]
@@ -500,10 +532,10 @@ pro c2jtimeline, pickpath=pickpath, range=range, linf=linf, detplot=detplot
   device, /close
   close, /ALL
 
-  print, ' ******************************'
-  print, ' ****  C2JTIMELINE is DONE ****'
-  print, ' *** Next step is RUNTARGET ***'
-  print, ' ******************************'
+  print, ' ****************************** '
+  print, ' ****  C2JTIMELINE is DONE **** '
+  print, ' *** Next step is RUNTARGET *** '
+  print, ' ****************************** '
 
   return
 end

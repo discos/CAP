@@ -158,7 +158,7 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
   gaintime=data[0].time              ; associated MJD (first sample of first subscan)
   firstscanname=strsplit(sublist[0],sep,/extract)
   firstscandate=strsplit(firstscanname[-1],'-',/extract)
-  
+
   datesplit=strsplit(firstscandate[0],path_sep(),/extract)
   yyyymmdd=datesplit[-1]
 
@@ -1226,12 +1226,16 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         peak_cnt_0 = cal_wmean(p0, e0, /nan)
         peak_cnt_1 = cal_wmean(p1, e1, /nan)
-        w0=1/(e0/p0)
-        w1=1/(e1/p1)
-        err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
-        err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
-        ;  err_cnt_0 = stddev(p0, /nan)
-        ;  err_cnt_1 = stddev(p1, /nan)
+        w0=1.0/(e0/p0)
+        w1=1.0/(e1/p1)
+        ;  err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
+        ;  err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
+        err_cnt_0 = 1.0/sqrt((1.0/e0[0])^2+(1.0/e0[1])^2)   ; aggiornati 29/11/2021
+        err_cnt_1 = 1.0/sqrt((1.0/e1[0])^2+(1.0/e1[1])^2)
+      ; PROVA: 
+      ;  err_cntsd_0 = stddev(p0, /nan)
+      ;  err_cntsd_1 = stddev(p1, /nan)
+      ;  print, 'Ehilà: ', err_cnt_0, err_cntsd_0
 
         ; riscalo i ct2Jy e gli errori della polarizzazione 0 per l'offset incrociato
         c0[0]=c0[0]*exp(-(offset[1]*1.66/beamd)^2.)
@@ -1246,11 +1250,12 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         cnt2Jy_0 = cal_wmean(c0, d0, /nan)
         cnt2Jy_1 = cal_wmean(c1, d1, /nan)
-        w0=1/(d0/c0)
-        w1=1/(d1/c1)
-        err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
-        err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
-
+        w0=1.0/(d0/c0)
+        w1=1.0/(d1/c1)
+        ; err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
+        ; err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
+        err_cnt2Jy_0 = 1.0/sqrt((1.0/d0[0])^2+(1.0/d0[1])^2)   ; aggiornati 29/11/2021
+        err_cnt2Jy_1 = 1.0/sqrt((1.0/d1[0])^2+(1.0/d1[1])^2)
 
 
         ; last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
@@ -1326,10 +1331,12 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         peak_cnt_0 = cal_wmean(p0c, e0c, /nan)
         peak_cnt_1 = cal_wmean(p1c, e1c, /nan)
-        w0=1/(e0c/p0c)
-        w1=1/(e1c/p1c)
-        err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/(w0[0]+w0[1])
-        err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/(w1[0]+w1[1])
+        w0=1.0/(e0c/p0c)
+        w1=1.0/(e1c/p1c)
+        ;  err_cnt_0 = sqrt((w0[0]*e0[0])^2+(w0[1]*e0[1])^2)/sqrt(w0[0]+w0[1])
+        ;  err_cnt_1 = sqrt((w1[0]*e1[0])^2+(w1[1]*e1[1])^2)/sqrt(w1[0]+w1[1])
+        err_cnt_0 = 1.0/sqrt((1.0/e0c[0])^2+(1.0/e0c[1])^2)   ; aggiornati 29/11/2021
+        err_cnt_1 = 1.0/sqrt((1.0/e1c[0])^2+(1.0/e1c[1])^2)
         ;  err_cnt_0 = stddev(p0, /nan)
         ;  err_cnt_1 = stddev(p1, /nan)
 
@@ -1346,10 +1353,13 @@ pro cal_stack, path=path, out=out, plot=plot, beam=beam, speed=speed, dt=dt, sou
 
         cnt2Jy_0 = cal_wmean(c0c, d0c, /nan)
         cnt2Jy_1 = cal_wmean(c1c, d1c, /nan)
-        w0=1/(d0/c0)
-        w1=1/(d1/c1)
-        err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/(w0[0]+w0[1])
-        err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/(w1[0]+w1[1])
+        w0=1.0/(d0c/c0c)
+        w1=1.0/(d1c/c1c)
+        ; err_cnt2Jy_0 = sqrt((w0[0]*d0[0])^2+(w0[1]*d0[1])^2)/sqrt(w0[0]+w0[1])
+        ; err_cnt2Jy_1 = sqrt((w1[0]*d1[0])^2+(w1[1]*d1[1])^2)/sqrt(w1[0]+w1[1])
+
+        err_cnt2Jy_0 = 1.0/sqrt((1.0/d0c[0])^2+(1.0/d0c[1])^2)   ; aggiornati 29/11/2021
+        err_cnt2Jy_1 = 1.0/sqrt((1.0/d1c[0])^2+(1.0/d1c[1])^2)
 
 
         ; last check: when calibrators are not known, the resulting dummy cnt2Jy values are to be reset to -99.00
